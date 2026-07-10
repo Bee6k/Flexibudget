@@ -34,7 +34,11 @@ describe('Income API', () => {
       password_hash,
     });
     userId = user.id;
-    token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: '1h', algorithm: 'HS256' });
+    token = jwt.sign(
+      { sub: user.id, tv: Number(user.token_version) || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h', algorithm: 'HS256' }
+    );
   });
 
   it('creates an income', async () => {

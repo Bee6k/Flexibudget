@@ -14,18 +14,26 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: flexibudget_test
-          MYSQL_USER: flexiuser
-          MYSQL_PASSWORD: testpass
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=20
+          --health-start-period=15s
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: flexibudget_test
+      JWT_SECRET: flexibudget-ci-jwt-secret-minimum-32-chars-xx
+      JWT_EXPIRES_IN: 1h
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,17 +42,9 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - run: npm audit --audit-level=high
-        continue-on-error: true
+      - name: Wait for MySQL
+        run: node -e "const net=require('net'); const tryOnce=()=>new Promise((res)=>{const s=net.connect(3306,'127.0.0.1',()=>{s.end();res(true)});s.on('error',()=>res(false));}); (async()=>{for(let i=0;i<60;i++){if(await tryOnce()){console.log('MySQL port open');process.exit(0);} await new Promise(r=>setTimeout(r,1000));} console.error('MySQL not reachable'); process.exit(1);})();"
       - name: Run tests
-        env:
-          NODE_ENV: test
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_USER: flexiuser
-          DB_PASSWORD: testpass
-          DB_NAME: flexibudget_test
-          JWT_SECRET: flexibudget-ci-jwt-secret-minimum-32-chars-xx
         run: npm test
 
   frontend:
@@ -60,8 +60,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm audit --audit-level=high
-        continue-on-error: true
       - name: Production build
         env:
           VITE_API_URL: /api
