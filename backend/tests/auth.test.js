@@ -16,7 +16,6 @@ beforeAll(async () => {
 afterAll(async () => {
   const { User } = require('../models');
   await User.destroy({ where: { email } });
-  await sequelize.close();
 });
 
 describe('Auth API', () => {

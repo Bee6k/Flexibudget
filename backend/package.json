@@ -8,8 +8,8 @@
     "dev": "nodemon server.js",
     "server": "nodemon server.js",
     "migrate": "node -e \"require('dotenv').config(); const { sequelize } = require('./models'); const { runMigrations } = require('./utils/migrate'); runMigrations(sequelize).then(() => sequelize.close()).catch((e) => { console.error(e); process.exit(1); });\"",
-    "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test": "jest --runInBand --forceExit",
+    "test:coverage": "jest --runInBand --forceExit --coverage"
   },
   "keywords": [
     "budgeting",
@@ -47,6 +47,7 @@
     "setupFiles": [
       "<rootDir>/tests/setup.js"
     ],
+    "globalTeardown": "<rootDir>/tests/globalTeardown.js",
     "collectCoverageFrom": [
       "services/**/*.js",
       "controllers/**/*.js",

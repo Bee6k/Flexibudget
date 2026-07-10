@@ -44,8 +44,25 @@ jobs:
       - run: npm ci
       - name: Wait for MySQL
         run: node -e "const net=require('net'); const tryOnce=()=>new Promise((res)=>{const s=net.connect(3306,'127.0.0.1',()=>{s.end();res(true)});s.on('error',()=>res(false));}); (async()=>{for(let i=0;i<60;i++){if(await tryOnce()){console.log('MySQL port open');process.exit(0);} await new Promise(r=>setTimeout(r,1000));} console.error('MySQL not reachable'); process.exit(1);})();"
+      - name: DB preflight
+        run: |
+          node -e "
+          const sequelize = require('./config/database');
+          (async () => {
+            console.log('DB', process.env.DB_HOST, process.env.DB_USER, process.env.DB_NAME);
+            try {
+              await sequelize.authenticate();
+              console.log('authenticate ok');
+              await sequelize.sync();
+              console.log('sync ok');
+            } catch (e) {
+              console.error(e);
+              process.exit(1);
+            }
+          })();
+          "
       - name: Run tests
-        run: npm test
+        run: npm test -- --verbose --runInBand
 
   frontend:
     runs-on: ubuntu-latest

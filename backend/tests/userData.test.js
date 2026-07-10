@@ -30,7 +30,6 @@ afterAll(async () => {
   if (userId) {
     await User.destroy({ where: { id: userId } });
   }
-  await sequelize.close();
 });
 
 describe('Goals API', () => {
