@@ -10,9 +10,10 @@
  *
  * EXECUTED WHEN:
  * - Any file requires('../models')
- * - Server startup after sync (seedPresetCategories)
+ * - Server startup after migrations (seedPresetCategories)
  *
  * MAINTAINER NOTES:
+ * - Schema is owned by migrations/ — never re-enable sequelize.sync() in server.js
  * - Adding archetypes requires ENUM migration on expense_categories
  * - PRESET_CATEGORIES changes affect onboarding wizard defaults only (not existing users)
  */

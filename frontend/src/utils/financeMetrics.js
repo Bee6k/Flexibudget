@@ -112,11 +112,16 @@ export function deriveViewFromLive(live) {
 
 export function deriveSandboxView(sandbox, live) {
   if (!sandbox) return null;
-  const allocation = calculateAllocation({ balance: sandbox.current_balance, expenses: sandbox.expenses });
+  const allocation = calculateAllocation({
+    balance: sandbox.current_balance,
+    expenses: sandbox.expenses,
+    subscriptions: sandbox.subscriptions || live?.subscriptions || [],
+  });
   const horizon = simulateHorizon({
     balance: sandbox.current_balance,
     expenses: sandbox.expenses,
     incomes: sandbox.incomes,
+    subscriptions: sandbox.subscriptions || live?.subscriptions || [],
   });
   const crisis = evaluateCrisisState(horizon);
   return {

@@ -1,6 +1,6 @@
 /**
  * Frontend mirror of the backend allocation/horizon/crisis algorithms,
- * used by Sandbox mode to project hypothetical changes without persisting.
+ * used by Sandbox / Future Lab to project hypothetical changes without persisting.
  * The backend remains the source of truth for live data.
  */
 
@@ -25,20 +25,32 @@ export function toMonthly(amount, frequency) {
   }
 }
 
-export function calculateAllocation({ balance, expenses }) {
+function localKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function calculateAllocation({ balance, expenses, subscriptions = [] }) {
   const tierTotals = { 1: 0, 2: 0, 3: 0, 4: 0 };
   for (const e of expenses) {
     if (e.is_active === false) continue;
     tierTotals[e.priority_tier] = (tierTotals[e.priority_tier] || 0) + toMonthly(e.amount, e.frequency);
   }
+  for (const s of subscriptions) {
+    if (s.is_active === false || s.active === false) continue;
+    tierTotals[4] += toMonthly(s.amount, 'monthly');
+  }
 
   let remaining = Number(balance) || 0;
   const tiers = [1, 2, 3, 4].map((tier) => {
     const total_cost = tierTotals[tier] || 0;
-    let allocated, status;
+    let allocated;
+    let status;
     if (remaining >= total_cost) {
       allocated = total_cost;
-      status = total_cost === 0 ? 'FUNDED' : 'FUNDED';
+      status = 'FUNDED';
       remaining -= total_cost;
     } else if (remaining > 0) {
       allocated = remaining;
@@ -67,27 +79,31 @@ export function calculateAllocation({ balance, expenses }) {
   };
 }
 
-export function simulateHorizon({ balance, expenses, incomes }) {
-  const monthlyTotal = expenses
+export function simulateHorizon({ balance, expenses, incomes, subscriptions = [] }) {
+  const expenseMonthly = expenses
     .filter((e) => e.is_active !== false)
     .reduce((sum, e) => sum + toMonthly(e.amount, e.frequency), 0);
-  const daily_burn_rate = monthlyTotal / 30;
+  const subscriptionMonthly = (subscriptions || [])
+    .filter((s) => s.is_active !== false && s.active !== false)
+    .reduce((sum, s) => sum + toMonthly(s.amount, 'monthly'), 0);
+  const daily_burn_rate = (expenseMonthly + subscriptionMonthly) / 30;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayKey = today.toISOString().slice(0, 10);
+  const todayKey = localKey(today);
 
   const incomeByDate = new Map();
   for (const i of incomes || []) {
     const amount = Number(i.amount || 0);
     if (i.is_recurring) {
-      const anchor = new Date(String(i.expected_date).slice(0, 10));
-      if (Number.isNaN(anchor.getTime())) continue;
-      const dayOfMonth = anchor.getDate();
+      const anchorKey = String(i.expected_date).slice(0, 10);
+      const parts = anchorKey.split('-').map(Number);
+      if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) continue;
+      const dayOfMonth = parts[2];
       for (let month = 0; month < 12; month += 1) {
         const d = new Date(today.getFullYear(), today.getMonth() + month, dayOfMonth);
         if (d < today) continue;
-        const key = d.toISOString().slice(0, 10);
+        const key = localKey(d);
         incomeByDate.set(key, (incomeByDate.get(key) || 0) + amount);
       }
     } else {
@@ -108,22 +124,27 @@ export function simulateHorizon({ balance, expenses, incomes }) {
   let running = Number(balance) || 0;
   let exhaustion_date = null;
   const daily_snapshots = [];
+  let incomeEventCount = 0;
 
   for (let day = 0; day < 365; day += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + day);
-    const key = date.toISOString().slice(0, 10);
+    const key = localKey(date);
     const income_today = incomeByDate.get(key) || 0;
     const expense_today = expenseByDate.get(key) || 0;
+    if (income_today > 0) incomeEventCount += 1;
     running += income_today;
     running -= expense_today;
     running -= daily_burn_rate;
     daily_snapshots.push({ date: key, balance: Math.max(running, 0), income_received: income_today });
-    if (running <= 0) { exhaustion_date = key; break; }
+    if (running <= 0) {
+      exhaustion_date = key;
+      break;
+    }
   }
 
   const days_remaining = exhaustion_date
-    ? Math.max(0, Math.round((new Date(exhaustion_date) - today) / (1000 * 60 * 60 * 24)))
+    ? Math.max(0, Math.round((new Date(`${exhaustion_date}T00:00:00`) - today) / (1000 * 60 * 60 * 24)))
     : null;
 
   return {
@@ -132,7 +153,7 @@ export function simulateHorizon({ balance, expenses, incomes }) {
     exhaustion_date,
     days_remaining,
     daily_snapshots,
-    income_events_projected: incomes.length,
+    income_events_projected: incomeEventCount,
     calculated_at: new Date().toISOString(),
   };
 }

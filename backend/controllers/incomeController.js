@@ -1,6 +1,7 @@
 const sequelize = require('../config/database');
 const { Income } = require('../models');
 const serializeIncome = require('../utils/serializeIncome');
+const { parseBool } = require('../utils/parseBool');
 const {
   shouldApplyOneTimeNow,
   applyOneTimeIncome,
@@ -35,7 +36,7 @@ async function listIncomes(req, res, next) {
 
 async function createIncome(req, res, next) {
   try {
-    const isRecurring = Boolean(req.body.is_recurring);
+    const isRecurring = parseBool(req.body.is_recurring, false);
     const income = await sequelize.transaction(async (transaction) => {
       const created = await Income.create(
         {
@@ -60,7 +61,7 @@ async function createIncome(req, res, next) {
 
 async function updateIncome(req, res, next) {
   try {
-    const isRecurring = Boolean(req.body.is_recurring);
+    const isRecurring = parseBool(req.body.is_recurring, false);
     const income = await sequelize.transaction(async (transaction) => {
       const owned = await findOwnedIncome(req.user.id, req.params.incomeId, transaction);
       const before = owned.get({ plain: true });

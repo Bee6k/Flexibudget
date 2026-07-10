@@ -13,7 +13,7 @@ async function up(queryInterface) {
         primaryKey: true,
       },
       name: { type: DataTypes.STRING(120), allowNull: false },
-      email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
+      email: { type: DataTypes.STRING(255), allowNull: false },
       password_hash: { type: DataTypes.STRING(255), allowNull: false },
       current_balance: {
         type: DataTypes.DECIMAL(12, 2),
@@ -34,7 +34,10 @@ async function up(queryInterface) {
       created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
       updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     });
-    await queryInterface.addIndex('users', ['email'], { unique: true });
+    await queryInterface.addIndex('users', ['email'], {
+      unique: true,
+      name: 'users_email_unique',
+    });
   }
 
   if (!has('expense_categories')) {

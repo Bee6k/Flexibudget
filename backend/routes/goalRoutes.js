@@ -3,12 +3,13 @@ const { body, param } = require('express-validator');
 const { listGoals, createGoal, updateGoal, deleteGoal } = require('../controllers/goalController');
 const { requireAuth } = require('../middleware/auth');
 const validate = require('../middleware/validate');
+const { BALANCE_MAX } = require('../utils/moneyLimits');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
-const moneyMax = 1_000_000_000;
+const moneyMax = BALANCE_MAX;
 
 router.get('/', listGoals);
 router.post(

@@ -22,7 +22,10 @@ export default function EmergencyFundPage() {
 
   return (
     <Box>
-      <PageHeader title="Emergency Fund Center" subtitle="Coverage analysis based on your live burn rate and balance." />
+      <PageHeader
+        title="Emergency Fund Center"
+        subtitle="Estimate of how long your current balance covers monthly burn — not a separate savings account."
+      />
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>

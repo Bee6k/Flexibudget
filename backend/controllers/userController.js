@@ -1,5 +1,6 @@
 const serializeUser = require('../utils/serializeUser');
 const { syncOnboardingCompleted } = require('../utils/onboardingSync');
+const { parseBool } = require('../utils/parseBool');
 
 async function getProfile(req, res, next) {
   try {
@@ -25,8 +26,10 @@ async function updateBalance(req, res, next) {
 
 async function completeOnboarding(req, res, next) {
   try {
-    const { archetype, onboarding_completed = true } = req.body;
-    const updates = { onboarding_completed: Boolean(onboarding_completed) };
+    const { archetype } = req.body;
+    const updates = {
+      onboarding_completed: parseBool(req.body.onboarding_completed, true),
+    };
     if (archetype) updates.archetype = archetype;
     await req.user.update(updates);
     await req.user.reload();

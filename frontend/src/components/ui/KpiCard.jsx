@@ -26,7 +26,7 @@ export function AnimatedCounter({ value, duration = 900, variant = 'h3', color }
   }, [target, duration]);
 
   return (
-    <Typography variant={variant} sx={{ ...metricValueSx, color, fontSize: 'clamp(1.35rem, 3vw, 2.125rem)', fontWeight: 700 }}>
+    <Typography variant={variant} sx={{ ...metricValueSx, color, fontSize: { xs: '1.15rem', sm: 'clamp(1.35rem, 3vw, 2.125rem)' }, fontWeight: 700, letterSpacing: '-0.02em' }}>
       {formatCurrency(display)}
     </Typography>
   );

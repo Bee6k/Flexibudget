@@ -1,51 +1,69 @@
 # FlexiBudget Frontend
 
-React SPA for the FlexiBudget adaptive financial planning application.
+React SPA for adaptive budgeting (irregular income). Talks to the Express API over cookies + CSRF.
 
 ## Stack
 
-React 18 · Vite 5 · MUI v5 · React Router v6 · Axios · Recharts
+- React 18 + Vite 5
+- MUI v5 (theme in `src/theme/`)
+- React Router v6
+- Axios (`src/services/api.js`)
+- Recharts for charts
 
-## Setup
+## Quick start
 
 ```bash
+cd frontend
+cp .env.example .env   # if needed
 npm install
-cp .env.example .env   # optional — defaults to http://localhost:5000/api
+npm run dev
 ```
 
-## Run
+Open **http://localhost:5173**. For phones on the same Wi‑Fi, use your PC LAN IP (Vite `host: true`) and keep:
 
-```bash
-npm run dev    # development server at http://localhost:5173
-npm start      # alias for dev
-npm run build  # production build → dist/
-npm run preview
+```env
+VITE_API_URL=/api
 ```
 
-Requires the backend API running with `CLIENT_ORIGIN=http://localhost:5173`.
+Vite proxies `/api` → `http://127.0.0.1:5000`.
 
-## Environment
+## Scripts
 
-| Variable | Default |
-|----------|---------|
-| `VITE_API_URL` | `http://localhost:5000/api` |
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server (LAN-friendly) |
+| `npm run build` | Production build → `dist/` |
+| `npm run preview` | Preview production build |
 
-## Source layout
+## Folder map
 
 ```
 src/
-├── config/       navigation, lazy route imports, storage keys
-├── context/      auth, finance, notifications, theme
-├── hooks/        shared React hooks (e.g. useFinanceView)
-├── pages/        route-level screens
-├── components/   reusable UI (layout, charts, futureLab, forms)
-├── services/     Axios API modules
-├── theme/        MUI theme and design tokens
-└── utils/        client algorithms, formatting, sandbox engine
+  pages/           # Route screens
+  components/      # UI + feature widgets
+  context/         # Auth, Finance, Theme, Notifications
+  services/        # Thin API clients
+  utils/           # Money math, dates, Future Lab engine
+  config/          # Navigation + icons
+  theme/           # Colors / MUI theme
 ```
 
-## Key routes
+## How data flows
 
-Dashboard `/dashboard` · Expenses `/expenses` · Income `/income` · Future Lab `/future-lab` (sandbox scenarios)
+1. `AuthContext` verifies session (`GET /auth/verify`) and loads CSRF.
+2. `FinanceContext` loads dashboard + incomes and derives `view` (live or sandbox).
+3. Pages read `useFinanceView()` — never call allocation/horizon APIs ad hoc unless needed.
+4. Mutations go through `services/*` then `refresh()`.
 
-Full route table: [docs/FRONTEND.md](../docs/FRONTEND.md)
+## Important product notes
+
+- **Budget tips** (`/advise`) are rules-based, not AI.
+- **Future Lab** is a sandbox; “Save to real budget” writes via the API.
+- **Emergency Fund** page estimates coverage from **current balance ÷ burn**, not a separate fund ledger.
+- Date fields from the API are `YYYY-MM-DD` — use `utils/dates.js` (`parseDateOnly`) to avoid timezone day-shifts.
+
+## Related docs
+
+- Full UI notes: [`../docs/FRONTEND.md`](../docs/FRONTEND.md)
+- API contract: [`../docs/API.md`](../docs/API.md) and [`../docs/API_README.md`](../docs/API_README.md)
+- Backend: [`../backend/README.md`](../backend/README.md)

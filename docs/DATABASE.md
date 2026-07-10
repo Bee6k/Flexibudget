@@ -35,12 +35,15 @@ All user-owned tables use `ON DELETE CASCADE` from `users`.
 | current_balance | DECIMAL(12,2) | Default 0; used by allocation/horizon |
 | archetype | VARCHAR(32) | student, freelancer, family, businessman, worker |
 | onboarding_completed | BOOLEAN | Default false |
+| token_version | INT UNSIGNED | JWT revocation counter; default 0 |
 
 **Relationships:** One user → many expenses, incomes, goals, subscriptions, investments.
 
-**Constraints:** Email unique. Password stored hashed only.
+**Constraints:** Email unique (`users_email_unique` only — do not reintroduce duplicate unique indexes via `sync`).
 
 **Performance:** Unique index on `email`.
+
+**Schema ownership:** Migrations only. Application startup must not call `sequelize.sync()`.
 
 ---
 
@@ -83,6 +86,8 @@ All user-owned tables use `ON DELETE CASCADE` from `users`.
 
 **Indexes:** `user_id`; composite `(user_id, expected_date)`.
 
+**Delete policy:** Hard delete (row removed). Unlike expenses/goals/subscriptions/investments, incomes are not soft-deleted — intentional for one-time balance reversal simplicity.
+
 **Used by:** `horizonService` — adds income to running balance on matching dates.
 
 ---
@@ -101,7 +106,9 @@ All user-owned tables use `ON DELETE CASCADE` from `users`.
 
 **Seeded on startup** via `seedPresetCategories()` — idempotent `findOrCreate` by name+archetype.
 
-**Migration:** `202506030001` expands ENUM to include businessman/worker.
+**Constraints:** Unique `(name, archetype)` via `expense_categories_name_archetype_unique`.
+
+**Migration:** `202506030001` expands ENUM to include businessman/worker. Cleanup `202507110001` repairs duplicate indexes/FKs from older `sync()` usage.
 
 ---
 
@@ -173,7 +180,7 @@ All user-owned tables use `ON DELETE CASCADE` from `users`.
 | `202506030001-fix-expense-category-archetype-enum.js` | Adds businessman/worker to ENUM |
 | `202506030002-create-user-data-tables.js` | Creates goals, subscriptions, investments |
 
-**Startup order:** `sequelize.sync()` → `runMigrations()` → `seedPresetCategories()`.
+**Startup order:** `runMigrations()` → `seedPresetCategories()` (no `sequelize.sync()`).
 
 ---
 

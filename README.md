@@ -174,13 +174,16 @@ Never commit real `.env` files or weak secrets.
 
 | Doc | For |
 |-----|-----|
+| [Frontend README](./frontend/README.md) | UI app setup |
+| [Backend README](./backend/README.md) | API app setup |
+| [API guide](./docs/API_README.md) | Auth + endpoint overview |
+| [API reference](./docs/API.md) | Full endpoint tables |
 | [Developer onboarding](./docs/DEVELOPER_ONBOARDING.md) | First-day setup |
 | [Architecture](./docs/ARCHITECTURE.md) | How pieces connect |
-| [API reference](./docs/API.md) | Endpoints |
 | [Database](./docs/DATABASE.md) | Schema |
 | [Authentication](./docs/AUTHENTICATION.md) | Cookies & CSRF |
 | [Security](./docs/SECURITY.md) | Threat notes |
-| [Frontend](./docs/FRONTEND.md) | UI structure |
+| [Frontend details](./docs/FRONTEND.md) | UI structure |
 | [Maintainer notes](./docs/MAINTAINER.md) | What is safe to change |
 
 ---

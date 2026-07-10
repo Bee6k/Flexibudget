@@ -184,7 +184,7 @@ export function AreaCashFlowChart({ data, emptyAction }) {
   ];
 
   return (
-    <Box sx={{ width: '100%', height: 320 }}>
+    <Box sx={{ width: '100%', height: { xs: 220, sm: 280, md: 320 } }}>
       <ResponsiveContainer>
         <BarChart data={chartData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap="18%">
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />

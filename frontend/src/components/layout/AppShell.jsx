@@ -65,7 +65,20 @@ export default function AppShell() {
         <Box
           id="main-content"
           component="main"
-          sx={{ flex: 1, p: { xs: 2.5, sm: 3, md: 4 }, overflow: 'auto', maxWidth: 1440 }}
+          sx={{
+            flex: 1,
+            px: { xs: 1.5, sm: 2.5, md: 4 },
+            pt: { xs: 1.5, sm: 2.5, md: 3 },
+            pb: {
+              xs: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+              sm: 3,
+              md: 4,
+            },
+            overflow: 'auto',
+            maxWidth: 1440,
+            width: '100%',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
           {loading ? (
             <PageSkeleton />

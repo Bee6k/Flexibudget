@@ -11,33 +11,30 @@ async function up(queryInterface, Sequelize) {
     });
   }
 
-  // Best-effort FKs for DBs created via sequelize.sync without references.
-  // Ignore errors if constraints already exist or engine cannot add them.
-  const addFk = async (table, name, sql) => {
-    try {
-      await queryInterface.sequelize.query(sql);
-    } catch (err) {
-      const msg = String(err.message || err);
-      if (!/Duplicate|already exists|ER_FK_DUP_NAME|ER_CANT_CREATE_TABLE/i.test(msg)) {
-        console.warn(`Skipping FK ${name} on ${table}: ${msg}`);
-      }
-    }
+  // Only add named FKs when the table has no user_id FK yet (avoid duplicates
+  // alongside Sequelize-generated *_ibfk_* constraints from older sync()).
+  const ensureUserFk = async (table, constraintName) => {
+    const [rows] = await queryInterface.sequelize.query(
+      `
+      SELECT CONSTRAINT_NAME AS name
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = 'user_id'
+        AND REFERENCED_TABLE_NAME = 'users'
+      `,
+      { replacements: [table] }
+    );
+    if (rows.length > 0) return;
+    await queryInterface.sequelize.query(`
+      ALTER TABLE \`${table}\`
+        ADD CONSTRAINT \`${constraintName}\`
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    `);
   };
 
-  await addFk(
-    'expenses',
-    'expenses_user_id_fk',
-    `ALTER TABLE expenses
-      ADD CONSTRAINT expenses_user_id_fk
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
-  );
-  await addFk(
-    'incomes',
-    'incomes_user_id_fk',
-    `ALTER TABLE incomes
-      ADD CONSTRAINT incomes_user_id_fk
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
-  );
+  await ensureUserFk('expenses', 'expenses_user_id_fk');
+  await ensureUserFk('incomes', 'incomes_user_id_fk');
 
   try {
     // Remove duplicate presets before enforcing uniqueness

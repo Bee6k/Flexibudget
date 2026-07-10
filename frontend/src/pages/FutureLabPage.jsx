@@ -235,11 +235,12 @@ export default function FutureLabPage() {
             disabled={applyingSandbox}
             sx={{
               position: 'fixed',
-              bottom: 24,
-              right: 24,
+              bottom: { xs: 'max(16px, env(safe-area-inset-bottom))', sm: 24 },
+              right: { xs: 16, sm: 24 },
               fontWeight: 600,
               borderRadius: 99,
-              px: 3,
+              px: { xs: 2, sm: 3 },
+              zIndex: 1200,
               boxShadow: (t) => `0 8px 32px ${alpha(t.palette.success.main, 0.4)}`,
             }}
           >

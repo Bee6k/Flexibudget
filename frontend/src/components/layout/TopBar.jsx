@@ -42,7 +42,7 @@ export default function TopBar({ sidebarWidth, onMenuClick }) {
   const isDark = mode === 'dark';
 
   const isDashboard = location.pathname === '/dashboard';
-  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   const balance = view?.current_balance ?? 0;
   const pageTitle = PAGE_TITLES[location.pathname] || 'FlexiBudget';
   const expenseCount = view?.expenses?.length ?? 0;
@@ -56,26 +56,73 @@ export default function TopBar({ sidebarWidth, onMenuClick }) {
       sx={{
         width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
         zIndex: (t) => t.zIndex.appBar,
+        pt: 'env(safe-area-inset-top, 0px)',
+        backdropFilter: 'blur(10px)',
+        bgcolor: (t) => alpha(t.palette.background.default, 0.85),
+        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`,
       }}
     >
-      <Toolbar sx={{ gap: { xs: 1, md: 1.5 }, py: 1.5, minHeight: { xs: 60, sm: 68 }, px: { xs: 2, md: 3 } }}>
+      <Toolbar
+        sx={{
+          gap: { xs: 0.75, sm: 1.25 },
+          py: { xs: 1, sm: 1.25 },
+          minHeight: { xs: 56, sm: 64 },
+          px: { xs: 1.25, sm: 2, md: 3 },
+        }}
+      >
         <IconButton
           edge="start"
           onClick={onMenuClick}
           aria-label="Open navigation menu"
-          sx={{ display: { md: 'none' }, mr: 0.5 }}
+          sx={{ display: { md: 'none' }, ml: -0.5 }}
         >
           <MenuIcon />
         </IconButton>
 
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="caption" color="text.secondary" display="block" fontWeight={600} letterSpacing="0.05em">
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display={{ xs: 'none', sm: 'block' }}
+            fontWeight={600}
+            letterSpacing="0.05em"
+          >
             {monthLabel.toUpperCase()}
           </Typography>
-          <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' }}>
-            {isDashboard ? 'Financial Overview' : pageTitle}
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              lineHeight: 1.25,
+              letterSpacing: '-0.01em',
+              fontSize: { xs: '1rem', sm: '1.15rem' },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              pr: 0.5,
+            }}
+          >
+            {isDashboard ? 'Overview' : pageTitle}
           </Typography>
         </Box>
+
+        {/* Compact balance — visible on phones */}
+        <Chip
+          size="small"
+          onClick={() => setQuickAdd('balance')}
+          label={formatCurrency(balance)}
+          sx={{
+            display: { xs: 'inline-flex', sm: 'none' },
+            maxWidth: 120,
+            height: 28,
+            fontWeight: 700,
+            fontSize: '0.7rem',
+            bgcolor: isDark ? alpha('#fff', 0.06) : '#fff',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.08)'}`,
+            color: balance > 0 ? 'success.main' : 'warning.main',
+            '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+          }}
+        />
 
         <Box
           onClick={() => setQuickAdd('balance')}
@@ -139,25 +186,32 @@ export default function TopBar({ sidebarWidth, onMenuClick }) {
           Quick actions
         </Button>
         <IconButton
+          size="small"
           sx={{
             display: { sm: 'none' },
             bgcolor: isDark ? TEAL : NAVY,
             color: '#FFFFFF',
+            width: 36,
+            height: 36,
             '&:hover': { bgcolor: isDark ? TEAL : NAVY, opacity: 0.9 },
           }}
           onClick={(e) => setAddMenu(e.currentTarget)}
           aria-label="Quick actions"
         >
-          <AddIcon />
+          <AddIcon fontSize="small" />
         </IconButton>
 
-        <IconButton onClick={toggleMode} aria-label="Toggle theme" sx={{ border: `1px solid ${alpha(isDark ? '#fff' : '#000', 0.08)}` }}>
-          {mode === 'dark' ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+        <IconButton
+          size="small"
+          onClick={toggleMode}
+          aria-label="Toggle theme"
+        >
+          {mode === 'dark' ? <LightModeOutlinedIcon fontSize="small" /> : <DarkModeOutlinedIcon fontSize="small" />}
         </IconButton>
 
-        <IconButton onClick={(e) => setAnchor(e.currentTarget)} aria-label="Reminders" sx={{ border: `1px solid ${alpha(isDark ? '#fff' : '#000', 0.08)}` }}>
+        <IconButton size="small" onClick={(e) => setAnchor(e.currentTarget)} aria-label="Reminders">
           <Badge badgeContent={unreadCount} color="error" max={9} invisible={!unreadCount}>
-            <NotificationsNoneIcon />
+            <NotificationsNoneIcon fontSize="small" />
           </Badge>
         </IconButton>
 
@@ -168,11 +222,11 @@ export default function TopBar({ sidebarWidth, onMenuClick }) {
         >
           <Avatar
             sx={{
-              width: 40,
-              height: 40,
+              width: { xs: 32, sm: 36 },
+              height: { xs: 32, sm: 36 },
               bgcolor: isDark ? TEAL : NAVY,
               color: '#FFFFFF',
-              fontSize: '0.8rem',
+              fontSize: '0.75rem',
               fontWeight: 700,
             }}
           >
@@ -218,6 +272,15 @@ export default function TopBar({ sidebarWidth, onMenuClick }) {
             <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
           </Box>
           <Divider />
+          <MenuItem
+            onClick={() => { toggleMode(); setProfileMenu(null); }}
+            sx={{ display: { xs: 'flex', sm: 'none' } }}
+          >
+            <ListItemIcon>
+              {mode === 'dark' ? <LightModeOutlinedIcon fontSize="small" /> : <DarkModeOutlinedIcon fontSize="small" />}
+            </ListItemIcon>
+            {mode === 'dark' ? 'Light mode' : 'Dark mode'}
+          </MenuItem>
           <MenuItem onClick={() => { navigate('/profile'); setProfileMenu(null); }}>
             <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
             Profile

@@ -8,13 +8,14 @@ const {
 } = require('../controllers/investmentController');
 const { requireAuth } = require('../middleware/auth');
 const validate = require('../middleware/validate');
+const { INVESTMENT_MAX } = require('../utils/moneyLimits');
 
 const INVESTMENT_TYPES = [
   'Mutual Funds', 'Stocks', 'Crypto', 'FDs', 'Gold', 'Real Estate', 'Other',
 ];
 
 const router = express.Router();
-const moneyMax = 1_000_000_000;
+const moneyMax = INVESTMENT_MAX;
 
 router.use(requireAuth);
 

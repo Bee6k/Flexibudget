@@ -13,9 +13,9 @@ Get CSRF token: `GET /auth/csrf`
 
 | | |
 |---|---|
-| **Purpose** | Liveness check |
+| **Purpose** | Liveness + database connectivity |
 | **Auth** | NO |
-| **Response** | `{ "status": "ok" }` |
+| **Response** | `{ "status": "ok", "database": "up" }` (or `"down"` if DB unreachable) |
 
 ---
 
@@ -211,11 +211,11 @@ Aggregated view: user, allocation, horizon, crisis, expenses_by_tier.
 
 ### GET /allocation
 
-Waterfall allocation only.
+Waterfall allocation only. Active subscriptions are included in tier 4 (Lifestyle).
 
 ### GET /horizon
 
-365-day balance simulation.
+365-day balance simulation. Recurring incomes expand monthly; active subscriptions add to daily burn.
 
 ### GET /recommendations
 

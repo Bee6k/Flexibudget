@@ -38,11 +38,14 @@ async function generateRecommendations(userId) {
     const days_gained = daily_burn > 0 ? Math.round(monthly_cost / daily_burn) : 0;
     const newDays = currentDays + days_gained;
     const newExhaustion = horizon.exhaustion_date
-      ? new Date(horizon.exhaustion_date)
+      ? new Date(`${horizon.exhaustion_date}T00:00:00`)
       : new Date();
     if (horizon.exhaustion_date) {
       newExhaustion.setDate(newExhaustion.getDate() + days_gained);
     }
+    const y = newExhaustion.getFullYear();
+    const m = String(newExhaustion.getMonth() + 1).padStart(2, '0');
+    const d = String(newExhaustion.getDate()).padStart(2, '0');
 
     return {
       recommendation_id: `rec_${expense.id}_${index}`,
@@ -53,7 +56,7 @@ async function generateRecommendations(userId) {
       monthly_cost,
       impact: {
         days_gained,
-        new_exhaustion_date: horizon.exhaustion_date ? newExhaustion.toISOString().slice(0, 10) : null,
+        new_exhaustion_date: horizon.exhaustion_date ? `${y}-${m}-${d}` : null,
       },
       explanation: {
         cause: `Your current runway is only ${currentDays} days.`,

@@ -6,6 +6,7 @@
  *
  * RESPONSIBILITIES:
  * - Sum monthly cost per tier from active expenses
+ * - Fold active subscriptions into tier 4 (Lifestyle) monthly cost
  * - Allocate balance sequentially; mark FUNDED | PARTIAL | UNFUNDED
  * - Compute surplus after tier 4
  *
@@ -13,16 +14,17 @@
  * GET /dashboard, GET /allocation
  *
  * DEPENDENCIES:
- * User, Expense models; utils/finance.toMonthly
+ * User, Expense, Subscription models; utils/finance.toMonthly
  *
  * BUSINESS RULES:
  * - Tier 1 (Essentials) fully funded before tier 2 receives anything
  * - One-time expenses do not count toward tier monthly totals
+ * - Subscriptions are monthly Lifestyle costs (no separate priority field)
  *
  * MAINTAINER NOTES:
  * Any change requires allocation.test.js + manual dashboard verification.
  */
-const { User, Expense } = require('../models');
+const { User, Expense, Subscription } = require('../models');
 const { TIER_NAMES, toMonthly } = require('../utils/finance');
 
 /**
@@ -33,9 +35,17 @@ const { TIER_NAMES, toMonthly } = require('../utils/finance');
  */
 async function calculateAllocation(userId) {
   const user = await User.findByPk(userId);
-  if (!user) throw new Error('User not found');
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
 
   const expenses = await Expense.findAll({
+    where: { user_id: userId, is_active: true },
+  });
+
+  const subscriptions = await Subscription.findAll({
     where: { user_id: userId, is_active: true },
   });
 
@@ -43,6 +53,9 @@ async function calculateAllocation(userId) {
   for (const expense of expenses) {
     tierTotals[expense.priority_tier] =
       (tierTotals[expense.priority_tier] || 0) + toMonthly(expense.amount, expense.frequency);
+  }
+  for (const sub of subscriptions) {
+    tierTotals[4] += toMonthly(sub.amount, 'monthly');
   }
 
   let remaining = Number(user.current_balance) || 0;

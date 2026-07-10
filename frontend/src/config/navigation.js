@@ -35,7 +35,7 @@ export const NAV_SECTIONS = [
   },
   {
     title: 'Tips',
-    items: [{ path: '/advise', label: 'Budget tips', icon: 'ai' }],
+    items: [{ path: '/advise', label: 'Budget tips', icon: 'tips' }],
   },
   {
     title: 'Account',

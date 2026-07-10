@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  TextField, Alert, Link, Stack, InputAdornment, IconButton, FormControlLabel, Checkbox, Box, Typography,
+  TextField, Alert, Link, Stack, InputAdornment, IconButton, Typography,
 } from '@mui/material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -84,24 +84,6 @@ export default function LoginPage() {
             ),
           }}
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-          <FormControlLabel
-            disabled
-            control={<Checkbox size="small" checked={false} />}
-            label={<Box component="span" sx={{ fontSize: '0.875rem', color: 'text.disabled' }}>Remember me</Box>}
-            title="Coming soon"
-            sx={{ m: 0 }}
-          />
-          <Typography
-            component="span"
-            variant="body2"
-            color="text.disabled"
-            sx={{ fontSize: '0.8125rem', cursor: 'default' }}
-            title="Coming soon"
-          >
-            Forgot password?
-          </Typography>
-        </Box>
         <GradientButton
           type="submit"
           fullWidth

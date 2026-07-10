@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
-  Box, Paper, Typography, TextField, Button, Stack, Avatar, Chip,
+  Box, Paper, Typography, TextField, Button, Stack, Avatar, Chip, Alert,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PageHeader from '../components/ui/PageHeader';
 import RecommendationPanel from '../components/RecommendationPanel';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { FinanceUnavailable } from '../components/FinanceViewGate';
 import { useFinanceView } from '../hooks/useFinanceReady';
 import { formatCurrency } from '../utils/currency';
@@ -50,6 +51,9 @@ export default function AIInsightsPage() {
   const [messages, setMessages] = useState([
     { role: 'assistant', text: 'Hi — these are rules-based tips from your budget data. Ask a question or pick a suggestion below.' },
   ]);
+  const [pendingRec, setPendingRec] = useState(null);
+  const [removing, setRemoving] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   function ask(text) {
     const q = text || input;
@@ -68,12 +72,32 @@ export default function AIInsightsPage() {
 
   const { view, recommendations, refresh } = finance;
 
+  async function confirmRemoveRec() {
+    if (!pendingRec) return;
+    setRemoving(true);
+    setActionError('');
+    try {
+      await deleteExpense(pendingRec.expense_id);
+      setPendingRec(null);
+      await refresh();
+    } catch (err) {
+      setActionError(err.response?.data?.error || 'Could not remove expense.');
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   return (
     <Box>
       <PageHeader
         title="Budget tips"
         subtitle="Rules-based guidance from your spending data — not AI. Ask a question or review suggestions."
       />
+      {actionError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError('')}>
+          {actionError}
+        </Alert>
+      )}
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
         <Paper sx={{ flex: 1, p: 2.5, minHeight: 480, display: 'flex', flexDirection: 'column' }}>
           <Stack spacing={2} sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
@@ -124,10 +148,20 @@ export default function AIInsightsPage() {
           </Paper>
           <RecommendationPanel
             recommendations={recommendations}
-            onAccept={async (rec) => { await deleteExpense(rec.expense_id); await refresh(); }}
+            onAccept={(rec) => setPendingRec(rec)}
           />
         </Box>
       </Stack>
+
+      <ConfirmDialog
+        open={Boolean(pendingRec)}
+        title="Remove this expense?"
+        message={`“${pendingRec?.expense_name}” will be removed from your budget.`}
+        confirmLabel="Remove"
+        loading={removing}
+        onClose={() => !removing && setPendingRec(null)}
+        onConfirm={confirmRemoveRec}
+      />
     </Box>
   );
 }

@@ -9,12 +9,13 @@ const {
 } = require('../controllers/expenseController');
 const { requireAuth } = require('../middleware/auth');
 const validate = require('../middleware/validate');
+const { AMOUNT_MAX } = require('../utils/moneyLimits');
 
 const router = express.Router();
 
 const expenseBodyRules = [
   body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required.'),
-  body('amount').isFloat({ min: 0.01, max: 1_000_000_000 }).withMessage('Amount must be greater than zero.'),
+  body('amount').isFloat({ min: 0.01, max: AMOUNT_MAX }).withMessage('Amount must be between 0.01 and 99,999,999.99.'),
   body('frequency')
     .isIn(['weekly', 'monthly', 'yearly', 'one-time'])
     .withMessage('Invalid frequency.'),
@@ -35,7 +36,7 @@ router.post(
   '/bulk',
   body('items').isArray({ min: 1, max: 50 }).withMessage('Provide 1–50 items.'),
   body('items.*.name').trim().notEmpty().withMessage('Each item needs a name.'),
-  body('items.*.amount').isFloat({ min: 0.01 }).withMessage('Each item amount must be greater than zero.'),
+  body('items.*.amount').isFloat({ min: 0.01, max: AMOUNT_MAX }).withMessage('Each item amount must be valid.'),
   body('items.*.priority_tier').isInt({ min: 1, max: 4 }).withMessage('Each item needs a valid tier.'),
   body('items.*.frequency')
     .optional()

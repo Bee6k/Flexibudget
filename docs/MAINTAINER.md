@@ -63,8 +63,8 @@ Horizon uses `monthlyTotal / 30` — not calendar-accurate for weekly/yearly fre
 ### 3. CSRF skipped in tests only
 Do not propagate `NODE_ENV=test` to production.
 
-### 4. sync() on startup
-`sequelize.sync()` creates missing tables but does not alter columns. Schema changes **must** go through `migrations/`.
+### 4. Never re-enable sync() on startup
+Schema is owned by `migrations/` only. `sequelize.sync()` previously created duplicate email indexes and foreign keys. Tests may still use `sync({ force: true })` against a `*test*` database name — that is intentional and isolated.
 
 ### 5. localStorage migration
 Goals/subscriptions/investments pages migrate old localStorage once. Duplicate migration if server cleared but localStorage remains is unlikely but possible.

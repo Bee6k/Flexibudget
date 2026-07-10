@@ -93,12 +93,11 @@ async function start() {
     await sequelize.authenticate();
     console.log('Database connection established.');
 
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync();
-    }
+    // Schema is owned by migrations only. Do not call sequelize.sync() here —
+    // sync previously created dozens of duplicate email indexes and extra FKs.
     await runMigrations(sequelize);
     await seedPresetCategories();
-    console.log('Database models synchronized.');
+    console.log('Database migrations applied.');
 
     const server = app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
 

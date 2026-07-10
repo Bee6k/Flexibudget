@@ -11,7 +11,7 @@ import GoalsIcon from '@mui/icons-material/FlagOutlined';
 import EmergencyIcon from '@mui/icons-material/HealthAndSafetyOutlined';
 import InvestmentsIcon from '@mui/icons-material/AccountBalanceOutlined';
 import SubscriptionsIcon from '@mui/icons-material/SubscriptionsOutlined';
-import AiIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import TipsIcon from '@mui/icons-material/LightbulbOutlined';
 import SettingsIcon from '@mui/icons-material/SettingsOutlined';
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import ProfileIcon from '@mui/icons-material/PersonOutline';
@@ -31,7 +31,8 @@ const MAP = {
   emergency: EmergencyIcon,
   investments: InvestmentsIcon,
   subscriptions: SubscriptionsIcon,
-  ai: AiIcon,
+  ai: TipsIcon,
+  tips: TipsIcon,
   settings: SettingsIcon,
   profile: ProfileIcon,
 };

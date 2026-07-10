@@ -1,10 +1,13 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { NAVY, TEAL_SOFT } from '../../theme/surfaces';
 import { useThemeMode } from '../../context/ThemeContext';
 import Breadcrumbs from './Breadcrumbs';
 import BlurText from '../motion/BlurText';
 
 export default function PageHeader({ title, subtitle, action, badge, showBreadcrumbs = true }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { mode } = useThemeMode();
   const accent = mode === 'dark' ? TEAL_SOFT : NAVY;
 
@@ -15,17 +18,17 @@ export default function PageHeader({ title, subtitle, action, badge, showBreadcr
         display: 'flex',
         flexDirection: { xs: 'column', sm: 'row' },
         justifyContent: 'space-between',
-        alignItems: { xs: 'flex-start', sm: 'flex-end' },
-        mb: 4,
-        gap: 2.5,
+        alignItems: { xs: 'stretch', sm: 'flex-end' },
+        mb: { xs: 2, sm: 3, md: 4 },
+        gap: { xs: 1.5, sm: 2.5 },
         position: 'relative',
-        pb: 2.5,
+        pb: { xs: 1.5, sm: 2.5 },
         '&::after': {
           content: '""',
           position: 'absolute',
           bottom: 0,
           left: 0,
-          width: 48,
+          width: { xs: 32, sm: 48 },
           height: 3,
           borderRadius: 999,
           background: accent,
@@ -33,14 +36,18 @@ export default function PageHeader({ title, subtitle, action, badge, showBreadcr
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        {showBreadcrumbs && <Breadcrumbs />}
+        {showBreadcrumbs && !isMobile && <Breadcrumbs />}
         {badge && (
-          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ display: { xs: 'none', sm: 'block' }, mb: 0.75 }}
+          >
             {badge}
           </Typography>
         )}
         <Typography
-          variant="h4"
+          variant={isMobile ? 'h5' : 'h4'}
           component="h1"
           sx={{
             fontWeight: 700,
@@ -52,12 +59,26 @@ export default function PageHeader({ title, subtitle, action, badge, showBreadcr
           <BlurText text={title} delay={30} />
         </Typography>
         {subtitle && (
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640, lineHeight: 1.65 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              display: 'block',
+              maxWidth: 640,
+              lineHeight: 1.65,
+              mt: { xs: 0.5, sm: 0 },
+              fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+            }}
+          >
             {subtitle}
           </Typography>
         )}
       </Box>
-      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
+      {action && (
+        <Box sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'auto' }, '& > *': { width: { xs: '100%', sm: 'auto' } } }}>
+          {action}
+        </Box>
+      )}
     </Box>
   );
 }

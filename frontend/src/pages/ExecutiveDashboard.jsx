@@ -32,9 +32,9 @@ import { formatShortDate } from '../utils/dates';
 import { useThemeMode } from '../context/ThemeContext';
 
 const RANGE_OPTIONS = [
-  { value: 7, label: 'Last 7 days' },
-  { value: 30, label: 'Last 30 days' },
-  { value: 90, label: 'Last 3 months' },
+  { value: 7, label: '7d', shortLabel: '7d', fullLabel: 'Last 7 days' },
+  { value: 30, label: '30d', shortLabel: '30d', fullLabel: 'Last 30 days' },
+  { value: 90, label: '90d', shortLabel: '90d', fullLabel: 'Last 3 months' },
 ];
 
 function runwayFooter(horizon) {
@@ -138,9 +138,9 @@ export default function ExecutiveDashboard() {
         </Alert>
       )}
 
-      {/* Metric row — shadcn-style KPI cards */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} lg={3}>
+      {/* Metric row — 2×2 on phones, 4 across on desktop */}
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }} sx={{ mb: { xs: 2, md: 3 } }}>
+        <Grid item xs={6} sm={6} lg={3}>
           <MetricCard
             className="stagger-1"
             title="Available balance"
@@ -150,7 +150,7 @@ export default function ExecutiveDashboard() {
             footer={runwayFooter(view.horizon)}
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={6} sm={6} lg={3}>
           <MetricCard
             className="stagger-2"
             delay={0.05}
@@ -160,7 +160,7 @@ export default function ExecutiveDashboard() {
             footer={`${formatCurrency(burn.weekly)} typical weekly burn`}
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={6} sm={6} lg={3}>
           <MetricCard
             className="stagger-3"
             delay={0.1}
@@ -176,7 +176,7 @@ export default function ExecutiveDashboard() {
             footer="Based on crisis state, coverage, and balance"
           />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={6} sm={6} lg={3}>
           <MetricCard
             className="stagger-4"
             delay={0.15}
@@ -193,7 +193,7 @@ export default function ExecutiveDashboard() {
       <Grid container spacing={2.5} sx={{ mb: 3 }} alignItems="stretch">
         <Grid item xs={12} lg={8}>
           <FadeContent delay={80} y={16} sx={{ height: '100%' }}>
-          <GlassCard hover={false} sx={{ p: { xs: 2.5, md: 3 }, height: '100%' }}>
+          <GlassCard hover={false} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
             <Box
               sx={{
                 display: 'flex',
@@ -236,7 +236,7 @@ export default function ExecutiveDashboard() {
           <FadeContent delay={140} y={16} sx={{ height: '100%' }}>
           <GlassCard
             hover={false}
-            sx={{ p: { xs: 2.5, md: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}
+            sx={{ p: { xs: 2, md: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}
           >
             <Typography variant="h6" fontWeight={700} sx={{ letterSpacing: '-0.02em' }} gutterBottom>
               Income vs spending
@@ -263,11 +263,11 @@ export default function ExecutiveDashboard() {
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid item xs={12} md={6}>
           <FadeContent delay={180} y={14} sx={{ height: '100%' }}>
-          <GlassCard hover={false} sx={{ p: 3, height: '100%' }}>
+          <GlassCard hover={false} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
               <Stack direction="row" alignItems="center" spacing={1.25}>
                 <TrendingDownIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-                <Typography variant="h6" fontWeight={700}>Upcoming bills</Typography>
+                <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Upcoming bills</Typography>
               </Stack>
               <Button size="small" onClick={() => setQuickAdd('manage-expenses')} sx={{ textTransform: 'none' }}>
                 Manage
@@ -311,11 +311,11 @@ export default function ExecutiveDashboard() {
 
         <Grid item xs={12} md={6}>
           <FadeContent delay={220} y={14} sx={{ height: '100%' }}>
-          <GlassCard hover={false} sx={{ p: 3, height: '100%' }}>
+          <GlassCard hover={false} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
               <Stack direction="row" alignItems="center" spacing={1.25}>
                 <TrendingUpIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-                <Typography variant="h6" fontWeight={700}>Expected income</Typography>
+                <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Expected income</Typography>
               </Stack>
               <Button size="small" onClick={() => setQuickAdd('manage-income')} sx={{ textTransform: 'none' }}>
                 Manage
@@ -361,8 +361,8 @@ export default function ExecutiveDashboard() {
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={5}>
           <FadeContent delay={260} y={14} sx={{ height: '100%' }}>
-          <GlassCard hover={false} sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Where your money goes</Typography>
+          <GlassCard hover={false} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Where your money goes</Typography>
             <DonutAllocationChart tiers={view.allocation?.tiers} legend={false} />
             <Stack spacing={1.5} mt={2}>
               {(view.allocation?.tiers || []).map((t, i) => (
@@ -393,15 +393,18 @@ export default function ExecutiveDashboard() {
 
         <Grid item xs={12} md={7}>
           <FadeContent delay={300} y={14} sx={{ height: '100%' }}>
-          <GlassCard hover={false} sx={{ p: 3, height: '100%' }}>
+          <GlassCard hover={false} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
             <Stack direction="row" alignItems="center" spacing={1.25} mb={1}>
               <AutoAwesomeIcon color="primary" sx={{ fontSize: 20 }} />
-              <Typography variant="h6" fontWeight={700}>Suggested next steps</Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Suggested next steps</Typography>
             </Stack>
             <RecommendationPanel
               embedded
               recommendations={recommendations}
-              onAccept={async (rec) => { await deleteExpense(rec.expense_id); await refresh(); }}
+              onAccept={(rec) => setPendingRemove({
+                kind: 'expense',
+                item: { expense_id: rec.expense_id, name: rec.expense_name },
+              })}
             />
             {(!recommendations || recommendations.length === 0) && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>

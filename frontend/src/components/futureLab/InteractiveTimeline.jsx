@@ -32,11 +32,11 @@ export default function InteractiveTimeline({ milestones }) {
     <GlassCard hover={false} sx={{ p: { xs: 2, md: 2.5 }, mb: 3 }}>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
         <EventAvailableOutlinedIcon sx={{ color: accent, fontSize: 22 }} />
-        <Typography variant="h6" fontWeight={800}>
+        <Typography variant="h6" fontWeight={800} sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' } }}>
           Watch the future
         </Typography>
       </Stack>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: { xs: 'none', sm: 'block' } }}>
         Pick a date below — see your projected balance and any income due around then.
       </Typography>
 
@@ -65,7 +65,6 @@ export default function InteractiveTimeline({ milestones }) {
               onClick={() => setIndex(i)}
               onKeyDown={(e) => e.key === 'Enter' && setIndex(i)}
               sx={{
-                p: 1.5,
                 borderRadius: 2.5,
                 cursor: 'pointer',
                 textAlign: 'left',
@@ -79,16 +78,17 @@ export default function InteractiveTimeline({ milestones }) {
                   borderColor: accent,
                   bgcolor: alpha(accent, isDark ? 0.1 : 0.05),
                 },
-                minHeight: 88,
+                minHeight: { xs: 72, sm: 88 },
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 0.5,
+                gap: 0.35,
+                p: { xs: 1.25, sm: 1.5 },
               }}
             >
-              <Typography variant="caption" fontWeight={700} color={selected ? accent : 'text.secondary'}>
+              <Typography variant="caption" fontWeight={700} color={selected ? accent : 'text.secondary'} sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                 {m.label}
               </Typography>
-              <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.25 }}>
+              <Typography variant="subtitle2" fontWeight={800} sx={{ lineHeight: 1.25, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
                 {m.date ? formatShortDate(m.date) : '—'}
               </Typography>
               {hasIncome ? (

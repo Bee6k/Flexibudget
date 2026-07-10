@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, Stack, Chip, IconButton, Typography, MenuItem, Button, Checkbox,
+  TextField, Stack, Chip, IconButton, Typography, MenuItem, Button, Checkbox, Alert,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
@@ -28,6 +28,7 @@ export default function TransactionsPage() {
   const [selected, setSelected] = useState(new Set());
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const rows = useMemo(() => {
     const all = [
@@ -62,6 +63,7 @@ export default function TransactionsPage() {
   async function confirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
+    setActionError('');
     try {
       if (pendingDelete.mode === 'bulk') {
         for (const id of pendingDelete.ids) {
@@ -81,6 +83,8 @@ export default function TransactionsPage() {
       }
       setPendingDelete(null);
       await refresh();
+    } catch (err) {
+      setActionError(err.response?.data?.error || 'Could not delete. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -121,6 +125,12 @@ export default function TransactionsPage() {
         </Stack>
       </Paper>
 
+      {actionError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError('')}>
+          {actionError}
+        </Alert>
+      )}
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -146,7 +156,15 @@ export default function TransactionsPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((r) => (
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No transactions yet. Add income or expenses to see them here.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : rows.map((r) => (
               <TableRow key={r.id} hover selected={selected.has(r.id)}>
                 <TableCell padding="checkbox">
                   <Checkbox

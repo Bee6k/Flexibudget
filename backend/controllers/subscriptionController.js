@@ -1,5 +1,6 @@
 const { Subscription } = require('../models');
 const { serializeSubscription } = require('../utils/serializeSubscription');
+const { parseBool } = require('../utils/parseBool');
 
 async function findOwnedSubscription(userId, subscriptionId) {
   const subscription = await Subscription.findOne({
@@ -46,7 +47,7 @@ async function updateSubscription(req, res, next) {
       name: req.body.name.trim(),
       amount: req.body.amount,
       due_day: req.body.due_day,
-      is_active: req.body.active !== false,
+      is_active: parseBool(req.body.active, true),
     });
     res.json(serializeSubscription(subscription));
   } catch (err) {

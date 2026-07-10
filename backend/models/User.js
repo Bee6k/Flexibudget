@@ -34,7 +34,8 @@ const User = sequelize.define(
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: true,
+      // Uniqueness via named index only — avoid unique:true here (sync would
+      // create a second unique index alongside indexes below).
       validate: { isEmail: true },
     },
     password_hash: {
@@ -63,7 +64,7 @@ const User = sequelize.define(
   },
   {
     tableName: 'users',
-    indexes: [{ unique: true, fields: ['email'] }],
+    indexes: [{ unique: true, name: 'users_email_unique', fields: ['email'] }],
   }
 );
 

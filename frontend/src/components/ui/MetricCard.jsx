@@ -29,18 +29,18 @@ export default function MetricCard({
       accent={undefined}
       className={className || ''}
       sx={{
-        p: 2.5,
+        p: { xs: 1.75, sm: 2.5 },
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         minHeight: { xs: 'auto', md: 168 },
       }}
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: 1.5 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1} sx={{ mb: { xs: 1, sm: 1.5 } }}>
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ fontWeight: 500, lineHeight: 1.4 }}
+          sx={{ fontWeight: 500, lineHeight: 1.3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
         >
           {title}
         </Typography>
@@ -68,7 +68,7 @@ export default function MetricCard({
           <Typography
             sx={{
               fontWeight: 700,
-              fontSize: 'clamp(1.5rem, 2.5vw, 1.875rem)',
+              fontSize: { xs: '1.15rem', sm: 'clamp(1.5rem, 2.5vw, 1.875rem)' },
               letterSpacing: '-0.03em',
               lineHeight: 1.15,
               overflowWrap: 'anywhere',
@@ -80,7 +80,12 @@ export default function MetricCard({
       </Box>
 
       {trendLabel && (
-        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.75 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{ mb: 0.75, display: { xs: 'none', sm: 'flex' } }}
+        >
           {positive != null && (
             positive
               ? <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} />
@@ -96,7 +101,12 @@ export default function MetricCard({
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ mt: 'auto', pt: 0.5, lineHeight: 1.45, display: 'block' }}
+          sx={{
+            mt: 'auto',
+            pt: 0.5,
+            lineHeight: 1.45,
+            display: { xs: 'none', sm: 'block' },
+          }}
         >
           {footer}
         </Typography>

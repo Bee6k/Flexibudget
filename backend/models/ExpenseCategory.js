@@ -30,7 +30,16 @@ const ExpenseCategory = sequelize.define(
       allowNull: false,
     },
   },
-  { tableName: 'expense_categories' }
+  {
+    tableName: 'expense_categories',
+    indexes: [
+      {
+        unique: true,
+        name: 'expense_categories_name_archetype_unique',
+        fields: ['name', 'archetype'],
+      },
+    ],
+  }
 );
 
 module.exports = ExpenseCategory;

@@ -4,7 +4,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { FinanceUnavailable } from '../components/FinanceViewGate';
 import { useFinanceView } from '../hooks/useFinanceReady';
 import { formatCurrency } from '../utils/currency';
-import { formatShortDate } from '../utils/dates';
+import { formatShortDate, parseDateOnly } from '../utils/dates';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -19,20 +19,17 @@ export default function FinancialCalendarPage() {
   const eventsByDay = useMemo(() => {
     const map = {};
     (finance?.view?.expenses || []).forEach((e) => {
-      if (!e.due_date) return;
-      const d = new Date(e.due_date).getDate();
-      if (new Date(e.due_date).getMonth() === month) {
-        map[d] = [...(map[d] || []), { type: 'bill', label: e.name, amount: e.amount }];
-      }
+      const parts = parseDateOnly(e.due_date);
+      if (!parts || parts.month !== month || parts.year !== year) return;
+      map[parts.day] = [...(map[parts.day] || []), { type: 'bill', label: e.name, amount: e.amount }];
     });
     (finance?.view?.incomes || []).forEach((i) => {
-      const d = new Date(i.expected_date).getDate();
-      if (new Date(i.expected_date).getMonth() === month) {
-        map[d] = [...(map[d] || []), { type: 'income', label: i.source_name, amount: i.amount }];
-      }
+      const parts = parseDateOnly(i.expected_date);
+      if (!parts || parts.month !== month || parts.year !== year) return;
+      map[parts.day] = [...(map[parts.day] || []), { type: 'income', label: i.source_name, amount: i.amount }];
     });
     return map;
-  }, [finance?.view, month]);
+  }, [finance?.view, month, year]);
 
   if (!finance) return <FinanceUnavailable />;
 
@@ -45,11 +42,11 @@ export default function FinancialCalendarPage() {
   return (
     <Box>
       <PageHeader title="Financial Calendar" subtitle="Bills, income, and reminders in one monthly view." />
-      <Paper sx={{ p: 2.5 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2.5 }, overflowX: 'auto' }}>
         <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
           {now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </Typography>
-        <Grid container columns={7} spacing={0.5}>
+        <Grid container columns={7} spacing={0.5} sx={{ minWidth: { xs: 520, sm: 0 } }}>
           {DAYS.map((d) => (
             <Grid item xs={1} key={d}>
               <Typography variant="caption" color="text.secondary" align="center" display="block" fontWeight={700}>{d}</Typography>
@@ -59,7 +56,7 @@ export default function FinancialCalendarPage() {
             <Grid item xs={1} key={idx}>
               <Box
                 sx={{
-                  minHeight: 88,
+                  minHeight: { xs: 64, sm: 88 },
                   p: 0.75,
                   borderRadius: 1.5,
                   border: '1px solid',
