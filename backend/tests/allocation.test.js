@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
-const { sequelize, User } = require('../models');
+const { sequelize, User, seedPresetCategories } = require('../models');
 const { calculateAllocation } = require('../services/allocationService');
 const app = require('../server');
 
@@ -13,6 +13,8 @@ let userId;
 beforeAll(async () => {
   await sequelize.authenticate();
   await sequelize.sync();
+  // Preset API tests need seeded categories (CI starts from an empty DB).
+  await seedPresetCategories();
 
   const user = await User.create({
     name: 'Allocation Tester',
@@ -72,6 +74,7 @@ describe('Preset API', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
+    expect(res.body.length).toBeGreaterThan(0);
     expect(res.body.some((item) => item.name === 'Commute / Fuel')).toBe(true);
   });
 });
