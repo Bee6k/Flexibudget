@@ -14,7 +14,7 @@ const { getJwtSecret, signOptions } = require('../config/jwt');
 const { setAuthCookie, clearAuthCookie, readAuthToken } = require('../utils/authCookie');
 const { issueCsrfToken } = require('../middleware/csrf');
 
-const SALT_ROUNDS = 12;
+const SALT_ROUNDS = process.env.NODE_ENV === 'test' ? 4 : 12;
 
 /** Dummy hash so missing-user logins still pay bcrypt cost (timing equalization). */
 const DUMMY_HASH = bcrypt.hashSync('timing-equalization-placeholder', SALT_ROUNDS);

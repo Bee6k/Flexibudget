@@ -62,7 +62,19 @@ jobs:
           })();
           "
       - name: Run tests
-        run: npm test -- --verbose --runInBand
+        run: |
+          set -o pipefail
+          npm test -- --verbose --runInBand 2>&1 | tee test-output.txt
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::group::Test failure excerpt"
+            tail -n 80 test-output.txt || true
+            echo "::endgroup::"
+            grep -E 'FAIL |● |Expected:|Received:|Error:|ValidationError|thrown' test-output.txt | tail -n 50 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+          fi
+          exit "$status"
 
   frontend:
     runs-on: ubuntu-latest
