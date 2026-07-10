@@ -1,9 +1,8 @@
-const { sequelize } = require('../models');
-
 module.exports = async () => {
   try {
+    const { sequelize } = require('../models');
     await sequelize.close();
   } catch {
-    /* already closed */
+    /* ignore */
   }
 };

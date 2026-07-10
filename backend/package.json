@@ -47,6 +47,7 @@
     "setupFiles": [
       "<rootDir>/tests/setup.js"
     ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
     "globalTeardown": "<rootDir>/tests/globalTeardown.js",
     "collectCoverageFrom": [
       "services/**/*.js",
