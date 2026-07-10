@@ -13,8 +13,8 @@ const validate = require('../middleware/validate');
 const router = express.Router();
 
 const expenseBodyRules = [
-  body('name').trim().notEmpty().withMessage('Name is required.'),
-  body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than zero.'),
+  body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required.'),
+  body('amount').isFloat({ min: 0.01, max: 1_000_000_000 }).withMessage('Amount must be greater than zero.'),
   body('frequency')
     .isIn(['weekly', 'monthly', 'yearly', 'one-time'])
     .withMessage('Invalid frequency.'),

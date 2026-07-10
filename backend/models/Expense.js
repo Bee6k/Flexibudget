@@ -28,6 +28,8 @@ const Expense = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     name: {
       type: DataTypes.STRING(100),

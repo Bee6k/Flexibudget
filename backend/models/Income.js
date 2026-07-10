@@ -12,6 +12,8 @@ const Income = sequelize.define(
     user_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     source_name: {
       type: DataTypes.STRING(100),

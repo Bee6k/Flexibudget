@@ -27,7 +27,7 @@ export default function GlassCard({
         position: 'relative',
         overflow: 'hidden',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
-        ...(hover ? hoverLift(isDark ? 'rgba(13, 148, 136, 0.12)' : 'rgba(30, 58, 95, 0.08)') : {}),
+        ...(hover ? hoverLift(isDark ? 'rgba(45, 212, 191, 0.14)' : 'rgba(30, 58, 95, 0.08)') : {}),
         ...(onClick ? { cursor: 'pointer' } : {}),
         '&::before': accent
           ? {

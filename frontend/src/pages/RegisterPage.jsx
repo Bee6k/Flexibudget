@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { TextField, Alert, Link, Stack, InputAdornment } from '@mui/material';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import { TextField, Alert, Link, Stack, Typography } from '@mui/material';
 import AuthLayout from '../components/auth/AuthLayout';
 import GradientButton from '../components/ui/GradientButton';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +20,9 @@ export default function RegisterPage() {
     if (!form.name.trim()) return 'Name is required.';
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return 'Enter a valid email address.';
     if (form.password.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      return 'Password must include at least one letter and one number.';
+    }
     if (form.password !== form.confirm) return 'Passwords do not match.';
     return '';
   }
@@ -45,22 +45,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Sign up and we'll walk you through a quick budget setup.">
+    <AuthLayout title="Create account" subtitle="Sign up and we'll walk you through a quick budget setup.">
       <Stack component="form" onSubmit={onSubmit} spacing={2.25}>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
           label="Full name"
           required
           fullWidth
+          autoFocus
           value={form.name}
           onChange={update('name')}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PersonOutlineIcon fontSize="small" color="primary" />
-              </InputAdornment>
-            ),
-          }}
         />
         <TextField
           label="Email"
@@ -69,37 +63,33 @@ export default function RegisterPage() {
           fullWidth
           value={form.email}
           onChange={update('email')}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <EmailOutlinedIcon fontSize="small" color="primary" />
-              </InputAdornment>
-            ),
-          }}
         />
         <TextField
           label="Password"
           type="password"
           required
           fullWidth
-          helperText="Minimum 8 characters"
+          helperText="At least 8 characters, with one letter and one number"
           value={form.password}
           onChange={update('password')}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockOutlinedIcon fontSize="small" color="primary" />
-              </InputAdornment>
-            ),
-          }}
         />
-        <TextField label="Confirm password" type="password" required fullWidth value={form.confirm} onChange={update('confirm')} />
-        <GradientButton type="submit" fullWidth disabled={submitting} size="large">
+        <TextField
+          label="Confirm password"
+          type="password"
+          required
+          fullWidth
+          value={form.confirm}
+          onChange={update('confirm')}
+        />
+        <GradientButton type="submit" fullWidth disabled={submitting} size="large" sx={{ borderRadius: 999, py: 1.4 }}>
           {submitting ? 'Creating…' : 'Create account'}
         </GradientButton>
-        <Link component={RouterLink} to="/login" variant="body2" align="center" fontWeight={600}>
-          Already have an account? Sign in
-        </Link>
+        <Typography variant="body2" align="center" color="text.secondary" sx={{ pt: 0.5 }}>
+          Already have an account?{' '}
+          <Link component={RouterLink} to="/login" fontWeight={700} underline="hover">
+            Sign in
+          </Link>
+        </Typography>
       </Stack>
     </AuthLayout>
   );

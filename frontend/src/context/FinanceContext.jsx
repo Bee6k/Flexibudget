@@ -108,7 +108,7 @@ export function FinanceProvider({ children }) {
     setSandbox((prev) => {
       const reset = resetSandboxData(prev);
       try {
-        localStorage.setItem(SANDBOX_STORAGE_KEY, JSON.stringify(reset));
+        localStorage.setItem(STORAGE_KEYS.SANDBOX_DRAFT, JSON.stringify(reset));
       } catch {
         /* ignore */
       }
@@ -263,7 +263,7 @@ export function FinanceProvider({ children }) {
       if (parsed?.snapshot) {
         const restore = window.confirm('Restore your unsaved sandbox session from this browser?');
         if (restore) setSandbox(parsed);
-        else localStorage.removeItem(SANDBOX_STORAGE_KEY);
+        else localStorage.removeItem(STORAGE_KEYS.SANDBOX_DRAFT);
       }
     } catch {
       localStorage.removeItem(STORAGE_KEYS.SANDBOX_DRAFT);

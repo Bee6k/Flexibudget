@@ -1,19 +1,6 @@
 /**
  * FILE: config/jwt.js
- *
- * PURPOSE:
- * SECURITY CRITICAL — JWT signing/verification configuration.
- *
- * RESPONSIBILITIES:
- * - Enforce HS256 algorithm only
- * - assertJwtSecret(): reject weak or short secrets at startup
- *
- * DEPENDENCIES:
- * - process.env.JWT_SECRET, JWT_EXPIRES_IN
- *
- * SECURITY NOTES:
- * - Weak secret blocklist prevents default .env.example values in production
- * - Minimum 32 character secret required
+ * JWT signing/verification — HS256 only, weak-secret rejection.
  */
 const WEAK_SECRETS = new Set([
   'replace_with_a_long_random_string_min_32_chars',
@@ -21,6 +8,8 @@ const WEAK_SECRETS = new Set([
   'secret',
   'change_me',
 ]);
+
+const WEAK_PREFIXES = ['dev_only', 'test_', 'changeme', 'replace_with'];
 
 function getJwtSecret() {
   return process.env.JWT_SECRET;
@@ -42,6 +31,12 @@ function assertJwtSecret() {
   }
   if (WEAK_SECRETS.has(secret)) {
     throw new Error('JWT_SECRET is using a placeholder value. Generate a strong random secret.');
+  }
+  const lower = secret.toLowerCase();
+  if (WEAK_PREFIXES.some((p) => lower.startsWith(p) || lower.includes(p))) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET looks like a development placeholder. Use a strong random secret in production.');
+    }
   }
 }
 

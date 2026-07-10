@@ -1,9 +1,11 @@
 /**
  * Adjusts user.current_balance for one-time cash events (paid/received today or earlier).
- * Recurring expenses still only affect burn rate, not the stored balance.
+ * All mutations use a transaction + row lock to prevent lost updates.
  */
+const sequelize = require('../config/database');
+const User = require('../models/User');
+const { roundMoney } = require('./finance');
 
-/** Local calendar date as YYYY-MM-DD (avoids UTC shift on toISOString). */
 function todayDateKey() {
   const d = new Date();
   const y = d.getFullYear();
@@ -12,69 +14,74 @@ function todayDateKey() {
   return `${y}-${m}-${day}`;
 }
 
-/** One-time expense/income counts against balance when due today or in the past (or undated). */
 function shouldApplyOneTimeNow(dateValue) {
   if (!dateValue) return true;
   const key = String(dateValue).slice(0, 10);
   return key <= todayDateKey();
 }
 
-function roundMoney(value) {
-  return Math.round(Number(value) * 100) / 100;
+async function adjustBalance(user, delta, externalTx = null) {
+  const run = async (transaction) => {
+    const locked = await User.findByPk(user.id, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!locked) {
+      const err = new Error('User not found.');
+      err.status = 404;
+      throw err;
+    }
+    const next = roundMoney(Math.max(0, Number(locked.current_balance) + Number(delta)));
+    await locked.update({ current_balance: next }, { transaction });
+    await locked.reload({ transaction });
+    user.setDataValue('current_balance', locked.current_balance);
+    return locked;
+  };
+
+  if (externalTx) return run(externalTx);
+  return sequelize.transaction(run);
 }
 
-async function adjustBalance(user, delta) {
-  const next = roundMoney(Math.max(0, Number(user.current_balance) + delta));
-  await user.update({ current_balance: next });
-  await user.reload();
-  return user;
+async function applyOneTimeExpense(user, amount, tx) {
+  return adjustBalance(user, -Number(amount), tx);
 }
 
-async function applyOneTimeExpense(user, amount) {
-  return adjustBalance(user, -Number(amount));
+async function reverseOneTimeExpense(user, amount, tx) {
+  return adjustBalance(user, Number(amount), tx);
 }
 
-async function reverseOneTimeExpense(user, amount) {
-  return adjustBalance(user, Number(amount));
+async function applyOneTimeIncome(user, amount, tx) {
+  return adjustBalance(user, Number(amount), tx);
 }
 
-async function applyOneTimeIncome(user, amount) {
-  return adjustBalance(user, Number(amount));
+async function reverseOneTimeIncome(user, amount, tx) {
+  return adjustBalance(user, -Number(amount), tx);
 }
 
-async function reverseOneTimeIncome(user, amount) {
-  return adjustBalance(user, -Number(amount));
-}
-
-/**
- * Reconcile balance when a one-time expense is edited.
- */
-async function reconcileOneTimeExpenseBalance(user, before, after) {
+async function reconcileOneTimeExpenseBalance(user, before, after, tx) {
   const wasApplied = before.frequency === 'one-time' && shouldApplyOneTimeNow(before.due_date);
   const nowApplied = after.frequency === 'one-time' && shouldApplyOneTimeNow(after.due_date);
   let delta = 0;
   if (wasApplied) delta += Number(before.amount);
   if (nowApplied) delta -= Number(after.amount);
   if (delta === 0) return user;
-  return adjustBalance(user, delta);
+  return adjustBalance(user, delta, tx);
 }
 
-/**
- * Reconcile balance when a one-time income is edited.
- */
-async function reconcileOneTimeIncomeBalance(user, before, after) {
+async function reconcileOneTimeIncomeBalance(user, before, after, tx) {
   const wasApplied = !before.is_recurring && shouldApplyOneTimeNow(before.expected_date);
   const nowApplied = !after.is_recurring && shouldApplyOneTimeNow(after.expected_date);
   let delta = 0;
   if (wasApplied) delta -= Number(before.amount);
   if (nowApplied) delta += Number(after.amount);
   if (delta === 0) return user;
-  return adjustBalance(user, delta);
+  return adjustBalance(user, delta, tx);
 }
 
 module.exports = {
   todayDateKey,
   shouldApplyOneTimeNow,
+  adjustBalance,
   applyOneTimeExpense,
   reverseOneTimeExpense,
   applyOneTimeIncome,

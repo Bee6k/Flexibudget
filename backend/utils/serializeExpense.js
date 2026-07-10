@@ -3,7 +3,6 @@ function serializeExpense(expense) {
   const plain = expense.get ? expense.get({ plain: true }) : expense;
   return {
     expense_id: plain.id,
-    user_id: plain.user_id,
     name: plain.name,
     amount: Number(plain.amount),
     frequency: plain.frequency,

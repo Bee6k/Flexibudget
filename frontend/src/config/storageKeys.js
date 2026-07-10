@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   SUBSCRIPTIONS: 'flexibudget_subscriptions',
   INVESTMENTS: 'flexibudget_investments',
   DISMISSED_NOTIFICATIONS: 'flexibudget_dismissed_notifications',
+  SIDEBAR_OPEN: 'flexibudget_sidebar_open',
 };
 
 /** @deprecated import STORAGE_KEYS instead */

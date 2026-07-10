@@ -12,8 +12,8 @@ const validate = require('../middleware/validate');
 const router = express.Router();
 
 const incomeBodyRules = [
-  body('source_name').trim().notEmpty().withMessage('Source name is required.'),
-  body('amount').isFloat({ min: 0.01 }).withMessage('Amount must be greater than zero.'),
+  body('source_name').trim().isLength({ min: 1, max: 100 }).withMessage('Source name is required.'),
+  body('amount').isFloat({ min: 0.01, max: 1_000_000_000 }).withMessage('Amount must be greater than zero.'),
   body('expected_date').isISO8601().withMessage('Expected date is required.'),
   body('is_recurring').optional().isBoolean().withMessage('is_recurring must be boolean.'),
 ];

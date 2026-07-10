@@ -1,18 +1,10 @@
 /**
  * FILE: utils/authCookie.js
  *
- * PURPOSE:
  * SECURITY CRITICAL — HttpOnly JWT session cookie helpers.
- *
- * RESPONSIBILITIES:
- * - setAuthCookie / clearAuthCookie on login/logout
- * - readAuthToken: cookie first, Bearer header fallback (tests)
- *
- * SECURITY NOTES:
- * - httpOnly: true prevents JavaScript token theft
- * - sameSite: 'strict' reduces CSRF (used with separate CSRF middleware)
- * - secure: true in production (requires HTTPS)
  */
+const { cookiesShouldBeSecure } = require('./cookieSecure');
+
 const AUTH_COOKIE = 'flexibudget_token';
 
 function parseMaxAge(expiresIn = '1h') {
@@ -27,7 +19,7 @@ function parseMaxAge(expiresIn = '1h') {
 function cookieOptions() {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookiesShouldBeSecure(),
     sameSite: 'strict',
     path: '/',
     maxAge: parseMaxAge(process.env.JWT_EXPIRES_IN || '1h'),
@@ -41,7 +33,7 @@ function setAuthCookie(res, token) {
 function clearAuthCookie(res) {
   res.clearCookie(AUTH_COOKIE, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookiesShouldBeSecure(),
     sameSite: 'strict',
     path: '/',
   });
@@ -57,6 +49,7 @@ function readAuthToken(req) {
 }
 
 module.exports = {
+  AUTH_COOKIE,
   setAuthCookie,
   clearAuthCookie,
   readAuthToken,

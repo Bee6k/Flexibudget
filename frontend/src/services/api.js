@@ -11,7 +11,7 @@ import { STORAGE_KEYS } from '../config/storageKeys';
 const CSRF_COOKIE = STORAGE_KEYS.CSRF;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api'),
   timeout: 30000,
   withCredentials: true,
 });

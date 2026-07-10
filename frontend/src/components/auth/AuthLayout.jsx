@@ -1,133 +1,103 @@
-import { Box, Typography, Stack, Chip, Paper, alpha } from '@mui/material';
+import { Box, Typography, Stack, Paper, alpha } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useThemeMode } from '../../context/ThemeContext';
-import { NAVY, TEAL, cardSurface } from '../../theme/surfaces';
+import { NAVY, TEAL, TEAL_SOFT, CONTRAST, cardSurface } from '../../theme/surfaces';
+import TextBehindHero from '../motion/TextBehindHero';
+import BlurText from '../motion/BlurText';
 
-const FEATURES = [
-  'See how long your money will last',
-  'Know which bills are covered first',
-  'Get clear steps when finances tighten',
-  'Built for irregular and freelance income',
-];
-
+/**
+ * Split-screen auth — preferred circle / text-behind left panel,
+ * with a soft curve that reaches into the form side.
+ */
 export default function AuthLayout({ title, subtitle, children }) {
   const { mode } = useThemeMode();
   const isDark = mode === 'dark';
 
+  const panelFill = isDark ? CONTRAST.darkElevated : '#F4F6F8';
+  const pageBg = isDark ? CONTRAST.darkBg : '#EEF1F4';
+  const curveStroke = isDark ? alpha(TEAL_SOFT, 0.4) : alpha(NAVY, 0.12);
+
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default', position: 'relative', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        bgcolor: pageBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: { xs: 'center', md: 'flex-end' },
+      }}
+    >
+      {/* Curved brand panel — arcs into the form side (top & bottom hug) */}
       <Box
+        aria-hidden
         sx={{
-          flex: 1,
-          display: { xs: 'none', md: 'flex' },
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          p: 6,
-          position: 'relative',
-          overflow: 'hidden',
-          bgcolor: isDark ? '#0B1120' : '#F8FAFC',
-          borderRight: 1,
-          borderColor: 'divider',
+          display: { xs: 'none', md: 'block' },
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: { md: '66%', lg: '64%' },
+          zIndex: 1,
+          pointerEvents: 'none',
         }}
       >
         <Box
-          sx={{
-            position: 'absolute',
-            width: 480,
-            height: 480,
-            borderRadius: '50%',
-            top: '-10%',
-            right: '-15%',
-            background: isDark
-              ? `radial-gradient(circle, ${alpha(TEAL, 0.08)} 0%, transparent 70%)`
-              : `radial-gradient(circle, ${alpha(NAVY, 0.05)} 0%, transparent 70%)`,
-            filter: 'blur(48px)',
-            pointerEvents: 'none',
-          }}
-        />
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ position: 'relative', zIndex: 1 }}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 2.5,
-              bgcolor: isDark ? TEAL : NAVY,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: isDark ? '0 4px 16px rgba(13,148,136,0.25)' : '0 4px 16px rgba(30,58,95,0.2)',
-            }}
-          >
-            <AccountBalanceWalletIcon sx={{ color: '#FFFFFF', fontSize: 26 }} />
-          </Box>
-          <Box>
-            <Typography variant="h5" fontWeight={700} letterSpacing="-0.01em">FlexiBudget</Typography>
-            <Typography variant="body2" color="text.secondary" fontWeight={500}>Smart money planning</Typography>
-          </Box>
-        </Stack>
-
-        <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography
-            variant="h2"
-            fontWeight={700}
-            sx={{ mb: 2, maxWidth: 520, lineHeight: 1.15, letterSpacing: '-0.02em', color: isDark ? 'text.primary' : NAVY }}
-          >
-            Know exactly when your money runs out.
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: 460, fontWeight: 400, lineHeight: 1.6 }}>
-            Plan with confidence — whether your income is steady, seasonal, or unpredictable.
-          </Typography>
-          <Stack spacing={1.25}>
-            {FEATURES.map((f, i) => (
-              <Chip
-                key={f}
-                label={f}
-                variant="outlined"
-                sx={{
-                  justifyContent: 'flex-start',
-                  height: 'auto',
-                  py: 1.25,
-                  px: 0.5,
-                  borderRadius: 2.5,
-                  borderColor: isDark ? alpha(TEAL, 0.25) : alpha(NAVY, 0.15),
-                  bgcolor: isDark ? alpha(TEAL, 0.06) : alpha(NAVY, 0.03),
-                  animation: `fadeSlideUp 0.4s ease ${0.08 + i * 0.06}s both`,
-                  '& .MuiChip-label': { whiteSpace: 'normal', lineHeight: 1.45, fontWeight: 500 },
-                }}
+          component="svg"
+          viewBox="0 0 1000 1000"
+          preserveAspectRatio="none"
+          sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        >
+          <defs>
+            <filter id="authCurveShadow" x="-4%" y="-4%" width="115%" height="108%">
+              <feDropShadow
+                dx="8"
+                dy="0"
+                stdDeviation="16"
+                floodColor={isDark ? '#000' : NAVY}
+                floodOpacity={isDark ? 0.32 : 0.07}
               />
-            ))}
-          </Stack>
+            </filter>
+          </defs>
+          <path
+            d="M0,0 H700 C860,50 930,180 910,500 C890,820 820,950 680,1000 H0 Z"
+            fill={panelFill}
+            filter="url(#authCurveShadow)"
+          />
+          <path
+            d="M700,0 C860,50 930,180 910,500 C890,820 820,950 680,1000"
+            fill="none"
+            stroke={curveStroke}
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+          />
         </Box>
-
-        <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ position: 'relative', zIndex: 1 }}>
-          Secure · NPR · Built for real-life budgets
-        </Typography>
       </Box>
 
+      {/* Left content — same preferred composition, sits inside the curve */}
       <Box
         sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
+          display: { xs: 'none', md: 'flex' },
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: { md: '52%', lg: '50%' },
+          zIndex: 2,
+          px: { md: 7, lg: 10 },
+          py: 8,
+          flexDirection: 'column',
           justifyContent: 'center',
-          p: { xs: 2.5, sm: 4 },
-          position: 'relative',
         }}
       >
-        <Paper
-          elevation={0}
-          className="animate-scale-in"
-          sx={{
-            width: '100%',
-            maxWidth: 440,
-            p: { xs: 3, sm: 4 },
-            borderRadius: 3,
-            position: 'relative',
-            zIndex: 1,
-            ...cardSurface(isDark),
-          }}
+        <TextBehindHero
+          watermark="FLEXI"
+          headline="Smart plans for a better"
+          headlineEmphasis="financial future."
+          support="Adaptive budgeting for irregular income — clear runway, priorities, and next steps."
         >
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3, display: { md: 'none' } }}>
+          <Stack direction="row" spacing={1.25} alignItems="center">
             <Box
               sx={{
                 width: 40,
@@ -137,17 +107,74 @@ export default function AuthLayout({ title, subtitle, children }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: isDark ? '0 8px 24px rgba(15,118,110,0.4)' : '0 8px 24px rgba(21,42,69,0.3)',
               }}
             >
-              <AccountBalanceWalletIcon sx={{ fontSize: 22, color: '#FFFFFF' }} />
+              <AccountBalanceWalletIcon sx={{ color: '#fff', fontSize: 22 }} />
             </Box>
-            <Typography variant="h5" fontWeight={700}>FlexiBudget</Typography>
+            <Typography variant="subtitle1" fontWeight={700} letterSpacing="-0.02em">
+              FlexiBudget
+            </Typography>
           </Stack>
-          <Typography variant="h4" fontWeight={700} gutterBottom lineHeight={1.2} letterSpacing="-0.01em">
-            {title}
+        </TextBehindHero>
+      </Box>
+
+      {/* Form — right side, lightly wrapped by the curve */}
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 3,
+          width: { xs: '100%', md: '44%', lg: '42%' },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: { xs: 2.5, sm: 4, md: 3, lg: 5 },
+          py: { xs: 4, md: 6 },
+          minHeight: '100vh',
+        }}
+      >
+        <Paper
+          elevation={0}
+          className="animate-scale-in"
+          sx={{
+            width: '100%',
+            maxWidth: 420,
+            p: { xs: 3.5, sm: 4.5 },
+            borderRadius: 4,
+            position: 'relative',
+            zIndex: 1,
+            ...cardSurface(isDark),
+            boxShadow: isDark
+              ? '0 20px 56px rgba(0,0,0,0.45)'
+              : '0 20px 56px rgba(15,23,42,0.1)',
+          }}
+        >
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ mb: 3, display: { md: 'none' } }}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: 2,
+                bgcolor: isDark ? TEAL : NAVY,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AccountBalanceWalletIcon sx={{ fontSize: 20, color: '#fff' }} />
+            </Box>
+            <Typography variant="subtitle1" fontWeight={700}>FlexiBudget</Typography>
+          </Stack>
+
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{ lineHeight: 1.2, letterSpacing: '-0.02em', mb: 0.75 }}
+          >
+            <BlurText text={title} delay={35} />
           </Typography>
           {subtitle && (
-            <Typography color="text.secondary" sx={{ mb: 3, lineHeight: 1.65 }}>
+            <Typography color="text.secondary" sx={{ mb: 3.5, lineHeight: 1.6, fontSize: '0.9375rem' }}>
               {subtitle}
             </Typography>
           )}

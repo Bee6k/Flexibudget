@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
   Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, Stack, Chip, IconButton, Typography, MenuItem, Button,
+  TextField, Stack, Chip, IconButton, Typography, MenuItem, Button, Checkbox,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import PageHeader from '../components/ui/PageHeader';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { FinanceUnavailable } from '../components/FinanceViewGate';
 import { useFinanceView } from '../hooks/useFinanceReady';
 import { expensesToTransactions, incomesToTransactions } from '../utils/financeMetrics';
@@ -14,11 +15,19 @@ import { formatShortDate } from '../utils/dates';
 import { deleteExpense } from '../services/expenses';
 import { deleteIncome } from '../services/incomes';
 
+function escapeCsvCell(value) {
+  let s = String(value ?? '');
+  if (/^[=+\-@]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 export default function TransactionsPage() {
   const finance = useFinanceView();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selected, setSelected] = useState(new Set());
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const rows = useMemo(() => {
     const all = [
@@ -38,9 +47,11 @@ export default function TransactionsPage() {
   const { refresh } = finance;
 
   function exportCsv() {
-    const header = 'Date,Name,Type,Category,Amount\n';
-    const body = rows.map((r) => `${r.date},${r.name},${r.type},${r.category},${r.amount}`).join('\n');
-    const blob = new Blob([header + body], { type: 'text/csv' });
+    const header = ['Date', 'Name', 'Type', 'Category', 'Amount'].map(escapeCsvCell).join(',');
+    const body = rows
+      .map((r) => [r.date, r.name, r.type, r.category, r.amount].map(escapeCsvCell).join(','))
+      .join('\n');
+    const blob = new Blob([`${header}\n${body}`], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -48,14 +59,35 @@ export default function TransactionsPage() {
     a.click();
   }
 
-  async function removeSelected() {
-    for (const id of selected) {
-      if (id.startsWith('exp-')) await deleteExpense(Number(id.replace('exp-', '')));
-      if (id.startsWith('inc-')) await deleteIncome(Number(id.replace('inc-', '')));
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.mode === 'bulk') {
+        for (const id of pendingDelete.ids) {
+          if (id.startsWith('exp-')) await deleteExpense(Number(id.replace('exp-', '')));
+          if (id.startsWith('inc-')) await deleteIncome(Number(id.replace('inc-', '')));
+        }
+        setSelected(new Set());
+      } else if (pendingDelete.row) {
+        const r = pendingDelete.row;
+        if (r.type === 'expense') await deleteExpense(r.raw.expense_id);
+        else await deleteIncome(r.raw.income_id);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(r.id);
+          return next;
+        });
+      }
+      setPendingDelete(null);
+      await refresh();
+    } finally {
+      setDeleting(false);
     }
-    setSelected(new Set());
-    await refresh();
   }
+
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const someSelected = rows.some((r) => selected.has(r.id)) && !allSelected;
 
   return (
     <Box>
@@ -66,7 +98,13 @@ export default function TransactionsPage() {
           <Stack direction="row" spacing={1}>
             <Button startIcon={<FileDownloadOutlinedIcon />} variant="outlined" onClick={exportCsv}>Export CSV</Button>
             {selected.size > 0 && (
-              <Button color="error" variant="contained" onClick={removeSelected}>Delete ({selected.size})</Button>
+              <Button
+                color="error"
+                variant="contained"
+                onClick={() => setPendingDelete({ mode: 'bulk', ids: [...selected], count: selected.size })}
+              >
+                Delete ({selected.size})
+              </Button>
             )}
           </Stack>
         )}
@@ -87,7 +125,18 @@ export default function TransactionsPage() {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox" />
+              <TableCell padding="checkbox">
+                <Checkbox
+                  size="small"
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelected(new Set(rows.map((r) => r.id)));
+                    else setSelected(new Set());
+                  }}
+                  inputProps={{ 'aria-label': 'Select all transactions' }}
+                />
+              </TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Category</TableCell>
@@ -100,8 +149,8 @@ export default function TransactionsPage() {
             {rows.map((r) => (
               <TableRow key={r.id} hover selected={selected.has(r.id)}>
                 <TableCell padding="checkbox">
-                  <input
-                    type="checkbox"
+                  <Checkbox
+                    size="small"
                     checked={selected.has(r.id)}
                     onChange={(e) => {
                       const next = new Set(selected);
@@ -109,6 +158,7 @@ export default function TransactionsPage() {
                       else next.delete(r.id);
                       setSelected(next);
                     }}
+                    inputProps={{ 'aria-label': `Select ${r.name}` }}
                   />
                 </TableCell>
                 <TableCell>{formatShortDate(r.date)}</TableCell>
@@ -123,11 +173,8 @@ export default function TransactionsPage() {
                 <TableCell align="right">
                   <IconButton
                     size="small"
-                    onClick={async () => {
-                      if (r.type === 'expense') await deleteExpense(r.raw.expense_id);
-                      else await deleteIncome(r.raw.income_id);
-                      await refresh();
-                    }}
+                    aria-label={`Delete ${r.name}`}
+                    onClick={() => setPendingDelete({ mode: 'single', row: r })}
                   >
                     <DeleteOutlineIcon fontSize="small" />
                   </IconButton>
@@ -137,6 +184,20 @@ export default function TransactionsPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={pendingDelete?.mode === 'bulk' ? 'Delete selected transactions?' : 'Delete transaction?'}
+        message={
+          pendingDelete?.mode === 'bulk'
+            ? `${pendingDelete.count} selected item(s) will be permanently removed.`
+            : `“${pendingDelete?.row?.name}” will be permanently removed.`
+        }
+        confirmLabel="Delete"
+        loading={deleting}
+        onClose={() => !deleting && setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </Box>
   );
 }

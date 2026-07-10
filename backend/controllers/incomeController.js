@@ -1,3 +1,4 @@
+const sequelize = require('../config/database');
 const { Income } = require('../models');
 const serializeIncome = require('../utils/serializeIncome');
 const {
@@ -7,8 +8,11 @@ const {
   reconcileOneTimeIncomeBalance,
 } = require('../utils/balanceAdjustments');
 
-async function findOwnedIncome(userId, incomeId) {
-  const income = await Income.findOne({ where: { id: incomeId, user_id: userId } });
+async function findOwnedIncome(userId, incomeId, transaction) {
+  const income = await Income.findOne({
+    where: { id: incomeId, user_id: userId },
+    transaction,
+  });
   if (!income) {
     const err = new Error('Income not found.');
     err.status = 404;
@@ -32,16 +36,22 @@ async function listIncomes(req, res, next) {
 async function createIncome(req, res, next) {
   try {
     const isRecurring = Boolean(req.body.is_recurring);
-    const income = await Income.create({
-      user_id: req.user.id,
-      source_name: req.body.source_name.trim(),
-      amount: req.body.amount,
-      expected_date: req.body.expected_date,
-      is_recurring: isRecurring,
+    const income = await sequelize.transaction(async (transaction) => {
+      const created = await Income.create(
+        {
+          user_id: req.user.id,
+          source_name: req.body.source_name.trim(),
+          amount: req.body.amount,
+          expected_date: req.body.expected_date,
+          is_recurring: isRecurring,
+        },
+        { transaction }
+      );
+      if (!isRecurring && shouldApplyOneTimeNow(created.expected_date)) {
+        await applyOneTimeIncome(req.user, created.amount, transaction);
+      }
+      return created;
     });
-    if (!isRecurring && shouldApplyOneTimeNow(income.expected_date)) {
-      await applyOneTimeIncome(req.user, income.amount);
-    }
     res.status(201).json(serializeIncome(income));
   } catch (err) {
     next(err);
@@ -50,16 +60,22 @@ async function createIncome(req, res, next) {
 
 async function updateIncome(req, res, next) {
   try {
-    const income = await findOwnedIncome(req.user.id, req.params.incomeId);
-    const before = income.get({ plain: true });
     const isRecurring = Boolean(req.body.is_recurring);
-    await income.update({
-      source_name: req.body.source_name.trim(),
-      amount: req.body.amount,
-      expected_date: req.body.expected_date,
-      is_recurring: isRecurring,
+    const income = await sequelize.transaction(async (transaction) => {
+      const owned = await findOwnedIncome(req.user.id, req.params.incomeId, transaction);
+      const before = owned.get({ plain: true });
+      await owned.update(
+        {
+          source_name: req.body.source_name.trim(),
+          amount: req.body.amount,
+          expected_date: req.body.expected_date,
+          is_recurring: isRecurring,
+        },
+        { transaction }
+      );
+      await reconcileOneTimeIncomeBalance(req.user, before, owned.get({ plain: true }), transaction);
+      return owned;
     });
-    await reconcileOneTimeIncomeBalance(req.user, before, income.get({ plain: true }));
     res.json(serializeIncome(income));
   } catch (err) {
     next(err);
@@ -68,11 +84,13 @@ async function updateIncome(req, res, next) {
 
 async function deleteIncome(req, res, next) {
   try {
-    const income = await findOwnedIncome(req.user.id, req.params.incomeId);
-    if (!income.is_recurring && shouldApplyOneTimeNow(income.expected_date)) {
-      await reverseOneTimeIncome(req.user, income.amount);
-    }
-    await income.destroy();
+    await sequelize.transaction(async (transaction) => {
+      const income = await findOwnedIncome(req.user.id, req.params.incomeId, transaction);
+      if (!income.is_recurring && shouldApplyOneTimeNow(income.expected_date)) {
+        await reverseOneTimeIncome(req.user, income.amount, transaction);
+      }
+      await income.destroy({ transaction });
+    });
     res.status(204).send();
   } catch (err) {
     next(err);

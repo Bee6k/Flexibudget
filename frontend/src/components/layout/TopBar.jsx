@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar, Toolbar, Box, IconButton, Badge, Avatar, Typography,
-  Menu, MenuItem, ListItemIcon, Divider, Button, Chip, alpha,
+  Menu, MenuItem, ListItemIcon, Divider, Button, Chip, alpha, ListItemText,
 } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import AddIcon from '@mui/icons-material/Add';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
@@ -14,6 +15,8 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeContext';
 import { useFinance } from '../../context/FinanceContext';
@@ -25,7 +28,7 @@ import { PAGE_TITLES } from '../../config/navigation';
 import { NAVY, TEAL } from '../../theme/surfaces';
 import NotificationMenu from './NotificationMenu';
 
-export default function TopBar({ sidebarWidth }) {
+export default function TopBar({ sidebarWidth, onMenuClick }) {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useThemeMode();
   const { view, setQuickAdd } = useFinance();
@@ -42,15 +45,29 @@ export default function TopBar({ sidebarWidth }) {
   const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const balance = view?.current_balance ?? 0;
   const pageTitle = PAGE_TITLES[location.pathname] || 'FlexiBudget';
+  const expenseCount = view?.expenses?.length ?? 0;
+  const incomeCount = view?.incomes?.length ?? 0;
 
   return (
     <AppBar
       position="sticky"
       elevation={0}
       color="transparent"
-      sx={{ width: `calc(100% - ${sidebarWidth}px)`, zIndex: (t) => t.zIndex.appBar }}
+      sx={{
+        width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
+        zIndex: (t) => t.zIndex.appBar,
+      }}
     >
       <Toolbar sx={{ gap: { xs: 1, md: 1.5 }, py: 1.5, minHeight: { xs: 60, sm: 68 }, px: { xs: 2, md: 3 } }}>
+        <IconButton
+          edge="start"
+          onClick={onMenuClick}
+          aria-label="Open navigation menu"
+          sx={{ display: { md: 'none' }, mr: 0.5 }}
+        >
+          <MenuIcon />
+        </IconButton>
+
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="caption" color="text.secondary" display="block" fontWeight={600} letterSpacing="0.05em">
             {monthLabel.toUpperCase()}
@@ -61,6 +78,11 @@ export default function TopBar({ sidebarWidth }) {
         </Box>
 
         <Box
+          onClick={() => setQuickAdd('balance')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setQuickAdd('balance')}
+          title="Click to update balance"
           sx={{
             display: { xs: 'none', sm: 'flex' },
             alignItems: 'center',
@@ -71,6 +93,11 @@ export default function TopBar({ sidebarWidth }) {
             bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
             border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}`,
             boxShadow: isDark ? 'none' : '0 1px 3px rgba(15,23,42,0.04)',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': {
+              borderColor: isDark ? 'rgba(45,212,191,0.35)' : 'rgba(21,42,69,0.25)',
+            },
           }}
         >
           <Box sx={{ textAlign: 'right' }}>
@@ -109,7 +136,7 @@ export default function TopBar({ sidebarWidth }) {
           onClick={(e) => setAddMenu(e.currentTarget)}
           sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
         >
-          Quick add
+          Quick actions
         </Button>
         <IconButton
           sx={{
@@ -119,7 +146,7 @@ export default function TopBar({ sidebarWidth }) {
             '&:hover': { bgcolor: isDark ? TEAL : NAVY, opacity: 0.9 },
           }}
           onClick={(e) => setAddMenu(e.currentTarget)}
-          aria-label="Quick add"
+          aria-label="Quick actions"
         >
           <AddIcon />
         </IconButton>
@@ -156,15 +183,32 @@ export default function TopBar({ sidebarWidth }) {
         <Menu anchorEl={addMenu} open={Boolean(addMenu)} onClose={() => setAddMenu(null)} transformOrigin={{ horizontal: 'right', vertical: 'top' }} anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}>
           <MenuItem onClick={() => { setQuickAdd('expense'); setAddMenu(null); }}>
             <ListItemIcon><CreditCardIcon fontSize="small" color="primary" /></ListItemIcon>
-            Add expense
+            <ListItemText primary="Add expense" />
           </MenuItem>
           <MenuItem onClick={() => { setQuickAdd('income'); setAddMenu(null); }}>
             <ListItemIcon><TrendingUpIcon fontSize="small" color="success" /></ListItemIcon>
-            Add income
+            <ListItemText primary="Add income" />
           </MenuItem>
           <MenuItem onClick={() => { setQuickAdd('balance'); setAddMenu(null); }}>
             <ListItemIcon><AccountBalanceIcon fontSize="small" color="secondary" /></ListItemIcon>
-            Update balance
+            <ListItemText primary="Update balance" />
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={() => { setQuickAdd('manage'); setAddMenu(null); }}>
+            <ListItemIcon><ListAltOutlinedIcon fontSize="small" /></ListItemIcon>
+            <ListItemText
+              primary="Manage money"
+              secondary={`${expenseCount} expenses · ${incomeCount} income`}
+              secondaryTypographyProps={{ variant: 'caption' }}
+            />
+          </MenuItem>
+          <MenuItem onClick={() => { setQuickAdd('manage-expenses'); setAddMenu(null); }}>
+            <ListItemIcon><DeleteOutlineIcon fontSize="small" color="error" /></ListItemIcon>
+            <ListItemText primary="Remove an expense" />
+          </MenuItem>
+          <MenuItem onClick={() => { setQuickAdd('manage-income'); setAddMenu(null); }}>
+            <ListItemIcon><DeleteOutlineIcon fontSize="small" color="error" /></ListItemIcon>
+            <ListItemText primary="Remove income" />
           </MenuItem>
         </Menu>
 

@@ -1,20 +1,26 @@
 import { useState } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import { TextField, Alert, Link, Stack, InputAdornment, IconButton } from '@mui/material';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import {
+  TextField, Alert, Link, Stack, InputAdornment, IconButton, FormControlLabel, Checkbox, Box, Typography,
+} from '@mui/material';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import AuthLayout from '../components/auth/AuthLayout';
 import GradientButton from '../components/ui/GradientButton';
 import { useAuth } from '../context/AuthContext';
 
+function safeRedirectPath(pathname) {
+  if (typeof pathname !== 'string') return '/dashboard';
+  if (!pathname.startsWith('/') || pathname.startsWith('//')) return '/dashboard';
+  return pathname;
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const successMessage = location.state?.message;
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = safeRedirectPath(location.state?.from?.pathname);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,39 +43,33 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to your financial command center.">
-      <Stack component="form" onSubmit={onSubmit} spacing={2.5}>
+    <AuthLayout title="Welcome Back" subtitle="Log in to your account.">
+      <Stack component="form" onSubmit={onSubmit} spacing={2.25}>
         {successMessage && <Alert severity="success">{successMessage}</Alert>}
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
           label="Email"
           type="email"
+          name="email"
           required
           autoFocus
           fullWidth
+          autoComplete="email"
+          placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <EmailOutlinedIcon fontSize="small" color="primary" />
-              </InputAdornment>
-            ),
-          }}
         />
         <TextField
           label="Password"
           type={showPass ? 'text' : 'password'}
+          name="password"
           required
           fullWidth
+          autoComplete="current-password"
+          placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockOutlinedIcon fontSize="small" color="primary" />
-              </InputAdornment>
-            ),
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
@@ -84,12 +84,39 @@ export default function LoginPage() {
             ),
           }}
         />
-        <GradientButton type="submit" fullWidth disabled={submitting} size="large">
-          {submitting ? 'Signing in…' : 'Sign in'}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+          <FormControlLabel
+            disabled
+            control={<Checkbox size="small" checked={false} />}
+            label={<Box component="span" sx={{ fontSize: '0.875rem', color: 'text.disabled' }}>Remember me</Box>}
+            title="Coming soon"
+            sx={{ m: 0 }}
+          />
+          <Typography
+            component="span"
+            variant="body2"
+            color="text.disabled"
+            sx={{ fontSize: '0.8125rem', cursor: 'default' }}
+            title="Coming soon"
+          >
+            Forgot password?
+          </Typography>
+        </Box>
+        <GradientButton
+          type="submit"
+          fullWidth
+          disabled={submitting}
+          size="large"
+          sx={{ borderRadius: 999, py: 1.4, mt: 0.5 }}
+        >
+          {submitting ? 'Signing in…' : 'Log In'}
         </GradientButton>
-        <Link component={RouterLink} to="/register" variant="body2" align="center" fontWeight={600}>
-          New to FlexiBudget? Create an account
-        </Link>
+        <Typography variant="body2" align="center" color="text.secondary" sx={{ pt: 0.5 }}>
+          New here?{' '}
+          <Link component={RouterLink} to="/register" fontWeight={700} underline="hover">
+            Create an account
+          </Link>
+        </Typography>
       </Stack>
     </AuthLayout>
   );

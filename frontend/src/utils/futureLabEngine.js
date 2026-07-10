@@ -313,7 +313,7 @@ export function buildMoneyJourney(scenarioView, maxNodes = 14) {
       label: ev.label,
       detail: isCritical
         ? 'Balance becomes negative'
-        : `Balance ≈ NPR ${Math.max(0, Math.round(running)).toLocaleString()}`,
+        : `Balance ≈ ${Math.max(0, Math.round(running)).toLocaleString('en-NP')}`,
       amount: Math.max(0, Math.round(running)),
       delta: ev.delta,
       tone: isCritical ? 'critical' : ev.tone,
@@ -329,22 +329,48 @@ export function buildInteractiveTimeline(scenarioView) {
   const incomes = scenarioView?.incomes || [];
   const expenses = scenarioView?.expenses || [];
 
-  return TIMELINE_MARKERS.map((marker) => {
+  return TIMELINE_MARKERS.map((marker, idx) => {
     const snap = snapshots[marker.day] || snapshots[snapshots.length - 1];
     const balance = snap ? Math.round(snap.balance) : null;
-    const date = snap?.date;
+    const date = snap?.date ? String(snap.date).slice(0, 10) : null;
+    const prevSnap = idx > 0
+      ? (snapshots[TIMELINE_MARKERS[idx - 1].day] || null)
+      : null;
+    const prevDate = prevSnap?.date ? String(prevSnap.date).slice(0, 10) : null;
 
     const events = [];
     if (marker.day === 0) events.push({ icon: '📍', text: 'Starting point' });
 
+    const incomesHere = [];
     for (const i of incomes) {
       const key = String(i.expected_date).slice(0, 10);
-      if (date && key === date) events.push({ icon: '💰', text: `Income: ${i.source_name}` });
+      if (!date || !key) continue;
+      const inWindow = idx === 0
+        ? key === date
+        : key <= date && (!prevDate || key > prevDate);
+      if (!inWindow) continue;
+      const amount = Number(i.amount) || 0;
+      incomesHere.push({
+        name: i.source_name,
+        amount,
+        date: key,
+        recurring: Boolean(i.is_recurring),
+      });
+      events.push({
+        icon: '💰',
+        text: `Income: ${i.source_name} (NPR ${Math.round(amount).toLocaleString()})`,
+      });
     }
+
     for (const e of expenses) {
-      if (e.frequency === 'one-time' && e.due_date && String(e.due_date).slice(0, 10) === date) {
-        events.push({ icon: '🧾', text: `Bill: ${e.name}` });
-      }
+      if (e.frequency !== 'one-time' || !e.due_date) continue;
+      const key = String(e.due_date).slice(0, 10);
+      if (!date || !key) continue;
+      const inWindow = idx === 0
+        ? key === date
+        : key <= date && (!prevDate || key > prevDate);
+      if (!inWindow) continue;
+      events.push({ icon: '🧾', text: `Bill: ${e.name}` });
     }
 
     const warning = balance != null && balance < 10000
@@ -358,6 +384,7 @@ export function buildInteractiveTimeline(scenarioView) {
       events,
       warning,
       incomeReceived: snap?.income_received || 0,
+      incomesHere,
     };
   });
 }

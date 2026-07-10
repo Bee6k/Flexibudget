@@ -1,10 +1,12 @@
 import { Box, Typography } from '@mui/material';
-import { NAVY, TEAL } from '../../theme/surfaces';
+import { NAVY, TEAL_SOFT } from '../../theme/surfaces';
 import { useThemeMode } from '../../context/ThemeContext';
+import Breadcrumbs from './Breadcrumbs';
+import BlurText from '../motion/BlurText';
 
-export default function PageHeader({ title, subtitle, action, badge }) {
+export default function PageHeader({ title, subtitle, action, badge, showBreadcrumbs = true }) {
   const { mode } = useThemeMode();
-  const accent = mode === 'dark' ? TEAL : NAVY;
+  const accent = mode === 'dark' ? TEAL_SOFT : NAVY;
 
   return (
     <Box
@@ -31,6 +33,7 @@ export default function PageHeader({ title, subtitle, action, badge }) {
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1 }}>
+        {showBreadcrumbs && <Breadcrumbs />}
         {badge && (
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
             {badge}
@@ -38,6 +41,7 @@ export default function PageHeader({ title, subtitle, action, badge }) {
         )}
         <Typography
           variant="h4"
+          component="h1"
           sx={{
             fontWeight: 700,
             mb: subtitle ? 1 : 0,
@@ -45,7 +49,7 @@ export default function PageHeader({ title, subtitle, action, badge }) {
             letterSpacing: '-0.02em',
           }}
         >
-          {title}
+          <BlurText text={title} delay={30} />
         </Typography>
         {subtitle && (
           <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640, lineHeight: 1.65 }}>

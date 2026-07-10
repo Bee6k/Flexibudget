@@ -2,7 +2,7 @@ const { toMonthly } = require('../utils/finance');
 
 describe('toMonthly', () => {
   it('converts weekly amounts to monthly', () => {
-    expect(toMonthly(100, 'weekly')).toBeCloseTo((100 * 52) / 12, 5);
+    expect(toMonthly(100, 'weekly')).toBe(433.33);
   });
 
   it('converts yearly amounts to monthly', () => {

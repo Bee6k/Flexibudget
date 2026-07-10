@@ -47,25 +47,27 @@ export default function ReportsPage() {
 
   return (
     <Box>
-      <PageHeader title="Reports Center" subtitle="Export financial snapshots for review or submission." />
+      <PageHeader title="Reports Center" subtitle="Export your current financial snapshot for review or submission." />
       <Grid container spacing={2.5}>
-        {['Monthly', 'Quarterly', 'Annual'].map((period) => (
-          <Grid item xs={12} md={4} key={period}>
-            <Paper sx={{ p: 2.5 }}>
-              <Typography variant="h6" fontWeight={700}>{period} snapshot</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Current balance, allocation, and runway summary.
-              </Typography>
-              <Stack direction="row" spacing={1}>
-                <Button size="small" startIcon={<DataObjectOutlinedIcon />} variant="outlined" onClick={downloadJson}>Export JSON</Button>
-                <Button size="small" startIcon={<TableChartOutlinedIcon />} variant="outlined" onClick={downloadCsv}>Export CSV</Button>
-              </Stack>
-            </Paper>
-          </Grid>
-        ))}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2.5 }}>
+            <Typography variant="h6" fontWeight={700}>Export current snapshot</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Downloads the same live balance, allocation, and runway summary shown below — not a period-specific report.
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button size="small" startIcon={<DataObjectOutlinedIcon />} variant="outlined" onClick={downloadJson}>
+                Export JSON
+              </Button>
+              <Button size="small" startIcon={<TableChartOutlinedIcon />} variant="outlined" onClick={downloadCsv}>
+                Export CSV
+              </Button>
+            </Stack>
+          </Paper>
+        </Grid>
         <Grid item xs={12}>
           <Paper sx={{ p: 2.5 }}>
-            <Typography variant="h6" fontWeight={700} gutterBottom>Current period snapshot</Typography>
+            <Typography variant="h6" fontWeight={700} gutterBottom>Current snapshot</Typography>
             <List dense>
               <ListItem><ListItemText primary="Balance" secondary={formatCurrency(report.balance)} /></ListItem>
               <ListItem><ListItemText primary="Monthly burn" secondary={formatCurrency(report.burn)} /></ListItem>

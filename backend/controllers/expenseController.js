@@ -1,20 +1,8 @@
 /**
  * FILE: controllers/expenseController.js
- *
- * PURPOSE:
- * CRUD handlers for user expenses with IDOR-safe ownership checks.
- *
- * RESPONSIBILITIES:
- * - listExpenses, createExpense, bulkCreateExpenses, updateExpense, deleteExpense
- * - findOwnedExpense: always filters by user_id + is_active
- *
- * SECURITY NOTES:
- * - PERMISSION CHECK: every mutation verifies expense belongs to req.user.id
- * - Soft delete preserves data (is_active=false)
- *
- * USED BY:
- * - routes/expenseRoutes.js, OnboardingWizard (bulk)
+ * CRUD for expenses with IDOR-safe ownership and transactional balance updates.
  */
+const sequelize = require('../config/database');
 const { Expense } = require('../models');
 const { serializeExpense } = require('../utils/serializeExpense');
 const {
@@ -24,9 +12,10 @@ const {
   reconcileOneTimeExpenseBalance,
 } = require('../utils/balanceAdjustments');
 
-async function findOwnedExpense(userId, expenseId) {
+async function findOwnedExpense(userId, expenseId, transaction) {
   const expense = await Expense.findOne({
     where: { id: expenseId, user_id: userId, is_active: true },
+    transaction,
   });
   if (!expense) {
     const err = new Error('Expense not found.');
@@ -54,17 +43,23 @@ async function listExpenses(req, res, next) {
 
 async function createExpense(req, res, next) {
   try {
-    const expense = await Expense.create({
-      user_id: req.user.id,
-      name: req.body.name.trim(),
-      amount: req.body.amount,
-      frequency: req.body.frequency,
-      priority_tier: req.body.priority_tier,
-      due_date: req.body.due_date || null,
+    const expense = await sequelize.transaction(async (transaction) => {
+      const created = await Expense.create(
+        {
+          user_id: req.user.id,
+          name: req.body.name.trim(),
+          amount: req.body.amount,
+          frequency: req.body.frequency,
+          priority_tier: req.body.priority_tier,
+          due_date: req.body.due_date || null,
+        },
+        { transaction }
+      );
+      if (created.frequency === 'one-time' && shouldApplyOneTimeNow(created.due_date)) {
+        await applyOneTimeExpense(req.user, created.amount, transaction);
+      }
+      return created;
     });
-    if (expense.frequency === 'one-time' && shouldApplyOneTimeNow(expense.due_date)) {
-      await applyOneTimeExpense(req.user, expense.amount);
-    }
     res.status(201).json(serializeExpense(expense));
   } catch (err) {
     next(err);
@@ -74,16 +69,30 @@ async function createExpense(req, res, next) {
 async function bulkCreateExpenses(req, res, next) {
   try {
     const items = Array.isArray(req.body.items) ? req.body.items : [];
-    const created = await Expense.bulkCreate(
-      items.map((item) => ({
-        user_id: req.user.id,
-        name: item.name.trim(),
-        amount: item.amount,
-        frequency: item.frequency || 'monthly',
-        priority_tier: item.priority_tier,
-        due_date: item.due_date || null,
-      }))
-    );
+    const created = await sequelize.transaction(async (transaction) => {
+      const rows = await Expense.bulkCreate(
+        items.map((item) => ({
+          user_id: req.user.id,
+          name: item.name.trim(),
+          amount: item.amount,
+          frequency: item.frequency || 'monthly',
+          priority_tier: item.priority_tier,
+          due_date: item.due_date || null,
+        })),
+        { transaction }
+      );
+
+      let oneTimeTotal = 0;
+      for (const row of rows) {
+        if (row.frequency === 'one-time' && shouldApplyOneTimeNow(row.due_date)) {
+          oneTimeTotal += Number(row.amount);
+        }
+      }
+      if (oneTimeTotal > 0) {
+        await applyOneTimeExpense(req.user, oneTimeTotal, transaction);
+      }
+      return rows;
+    });
     res.status(201).json(created.map(serializeExpense));
   } catch (err) {
     next(err);
@@ -92,16 +101,22 @@ async function bulkCreateExpenses(req, res, next) {
 
 async function updateExpense(req, res, next) {
   try {
-    const expense = await findOwnedExpense(req.user.id, req.params.expenseId);
-    const before = expense.get({ plain: true });
-    await expense.update({
-      name: req.body.name.trim(),
-      amount: req.body.amount,
-      frequency: req.body.frequency,
-      priority_tier: req.body.priority_tier,
-      due_date: req.body.due_date || null,
+    const expense = await sequelize.transaction(async (transaction) => {
+      const owned = await findOwnedExpense(req.user.id, req.params.expenseId, transaction);
+      const before = owned.get({ plain: true });
+      await owned.update(
+        {
+          name: req.body.name.trim(),
+          amount: req.body.amount,
+          frequency: req.body.frequency,
+          priority_tier: req.body.priority_tier,
+          due_date: req.body.due_date || null,
+        },
+        { transaction }
+      );
+      await reconcileOneTimeExpenseBalance(req.user, before, owned.get({ plain: true }), transaction);
+      return owned;
     });
-    await reconcileOneTimeExpenseBalance(req.user, before, expense.get({ plain: true }));
     res.json(serializeExpense(expense));
   } catch (err) {
     next(err);
@@ -110,11 +125,13 @@ async function updateExpense(req, res, next) {
 
 async function deleteExpense(req, res, next) {
   try {
-    const expense = await findOwnedExpense(req.user.id, req.params.expenseId);
-    if (expense.frequency === 'one-time' && shouldApplyOneTimeNow(expense.due_date)) {
-      await reverseOneTimeExpense(req.user, expense.amount);
-    }
-    await expense.update({ is_active: false });
+    await sequelize.transaction(async (transaction) => {
+      const expense = await findOwnedExpense(req.user.id, req.params.expenseId, transaction);
+      if (expense.frequency === 'one-time' && shouldApplyOneTimeNow(expense.due_date)) {
+        await reverseOneTimeExpense(req.user, expense.amount, transaction);
+      }
+      await expense.update({ is_active: false }, { transaction });
+    });
     res.status(204).send();
   } catch (err) {
     next(err);

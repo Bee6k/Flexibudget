@@ -4,15 +4,20 @@ import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/ui/PageHeader';
 import IncomeList from '../components/IncomeList';
 import IncomeForm from '../components/IncomeForm';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { AreaCashFlowChart } from '../components/charts/FinanceCharts';
 import { FinanceUnavailable } from '../components/FinanceViewGate';
 import { useFinanceView } from '../hooks/useFinanceReady';
+import { useToast } from '../context/ToastContext';
 import { createIncome, updateIncome, deleteIncome } from '../services/incomes';
 import { formatCurrency } from '../utils/currency';
 
 export default function IncomeManagerPage() {
   const finance = useFinanceView();
+  const { showToast } = useToast();
   const [dialog, setDialog] = useState({ open: false, initial: null });
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   if (!finance) return <FinanceUnavailable />;
 
@@ -25,16 +30,31 @@ export default function IncomeManagerPage() {
     balance: Number(i.amount),
   }));
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await deleteIncome(pendingDelete.income_id);
+      await refresh();
+      showToast(`Removed “${pendingDelete.source_name}”.`);
+      setPendingDelete(null);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Could not remove income.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <Box>
       <PageHeader
         title="Income Manager"
-        subtitle="Track salary, freelance, and recurring inflows."
-        action={
+        subtitle="Track salary, freelance, and recurring inflows. Use Remove on any row to delete."
+        action={(
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, initial: null })}>
             Add income
           </Button>
-        }
+        )}
       />
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         <Grid item xs={12} md={4}>
@@ -61,12 +81,8 @@ export default function IncomeManagerPage() {
           <IncomeList
             incomes={view.incomes}
             onEdit={(i) => setDialog({ open: true, initial: i })}
-            onDelete={async (i) => {
-              if (window.confirm(`Delete ${i.source_name}?`)) {
-                await deleteIncome(i.income_id);
-                await refresh();
-              }
-            }}
+            onAdd={() => setDialog({ open: true, initial: null })}
+            onDelete={(i) => setPendingDelete(i)}
           />
         </Grid>
         <Grid item xs={12} lg={5}>
@@ -84,7 +100,17 @@ export default function IncomeManagerPage() {
           if (dialog.initial) await updateIncome(dialog.initial.income_id, payload);
           else await createIncome(payload);
           await refresh();
+          showToast(dialog.initial ? 'Income updated.' : 'Income added.');
         }}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Remove income?"
+        message={`“${pendingDelete?.source_name}” will be removed from your schedule. Forecasts will update.`}
+        confirmLabel="Remove"
+        loading={deleting}
+        onClose={() => !deleting && setPendingDelete(null)}
+        onConfirm={confirmDelete}
       />
     </Box>
   );

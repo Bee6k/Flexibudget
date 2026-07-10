@@ -6,14 +6,22 @@
 
 export const TIER_NAMES = { 1: 'Survival', 2: 'Stability', 3: 'Strategic', 4: 'Lifestyle' };
 
+export function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
 export function toMonthly(amount, frequency) {
   const a = Number(amount) || 0;
   switch (frequency) {
-    case 'weekly': return (a * 52) / 12;
-    case 'yearly': return a / 12;
-    case 'one-time': return 0;
+    case 'weekly':
+      return roundMoney((a * 52) / 12);
+    case 'yearly':
+      return roundMoney(a / 12);
+    case 'one-time':
+      return 0;
     case 'monthly':
-    default: return a;
+    default:
+      return roundMoney(a);
   }
 }
 

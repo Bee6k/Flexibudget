@@ -1,14 +1,91 @@
-import { Box, Typography, Stack, Button } from '@mui/material';
+import { Box, Typography, Stack, Button, Paper } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine,
+  XAxis, YAxis, CartesianGrid,
+  BarChart, Bar,
 } from 'recharts';
-import { CHART_PALETTE } from '../../theme/financialColors';
-import { formatCurrency } from '../../utils/currency';
+import { chartPalette } from '../../theme/financialColors';
+import { TEAL } from '../../theme/surfaces';
+import { formatCurrency, formatCompactCurrency } from '../../utils/currency';
 import { formatShortDate } from '../../utils/dates';
+import EmptyState from '../ui/EmptyState';
+import { useThemeMode } from '../../context/ThemeContext';
+
+function useChartColors() {
+  const { mode } = useThemeMode();
+  const isDark = mode === 'dark';
+  return {
+    isDark,
+    grid: isDark ? 'rgba(148,183,210,0.12)' : 'rgba(15,23,42,0.07)',
+    tick: isDark ? '#9AA8BC' : '#475569',
+    primary: isDark ? '#E8EDF5' : '#152A45',
+    secondary: isDark ? '#5B6B82' : '#64748B',
+    tooltipBg: isDark ? '#172338' : '#FFFFFF',
+    tooltipBorder: isDark ? 'rgba(148,183,210,0.18)' : 'rgba(15,23,42,0.1)',
+  };
+}
+
+function ChartTooltip({ active, payload, label, series }) {
+  const colors = useChartColors();
+  if (!active || !payload?.length) return null;
+
+  const looksLikeDate = typeof label === 'string' && /^\d{4}-\d{2}-\d{2}/.test(label);
+  const title = looksLikeDate ? formatShortDate(label) : (label || '');
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        px: 1.75,
+        py: 1.25,
+        borderRadius: 2,
+        bgcolor: colors.tooltipBg,
+        border: `1px solid ${colors.tooltipBorder}`,
+        boxShadow: colors.isDark
+          ? '0 8px 24px rgba(0,0,0,0.45)'
+          : '0 8px 24px rgba(15,23,42,0.1)',
+        minWidth: 140,
+      }}
+    >
+      {title && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 600 }}>
+          {title}
+        </Typography>
+      )}
+      <Stack spacing={0.75}>
+        {payload.map((entry) => {
+          const meta = series?.find((s) => s.key === entry.dataKey);
+          return (
+            <Stack key={entry.dataKey} direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: entry.color || meta?.color || colors.primary,
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {meta?.label || entry.name}
+                </Typography>
+              </Stack>
+              <Typography variant="caption" fontWeight={700}>
+                {formatCurrency(entry.value)}
+              </Typography>
+            </Stack>
+          );
+        })}
+      </Stack>
+    </Paper>
+  );
+}
 
 export function DonutAllocationChart({ tiers, legend = true }) {
+  const { mode } = useThemeMode();
+  const palette = chartPalette(mode === 'dark');
   const data = (tiers || [])
     .filter((t) => (t.total_cost ?? t.value ?? 0) > 0)
     .map((t) => ({
@@ -17,29 +94,50 @@ export function DonutAllocationChart({ tiers, legend = true }) {
     }));
 
   if (!data.length) {
-    return <Typography variant="body2" color="text.secondary">Add expenses or holdings to see a breakdown.</Typography>;
+    return (
+      <EmptyState
+        compact
+        title="No allocation data"
+        description="Add expenses or holdings to see how your money is distributed across priority tiers."
+      />
+    );
   }
 
   return (
     <Box>
-      <Box sx={{ width: '100%', height: 240 }}>
+      <Box sx={{ width: '100%', height: 248 }}>
         <ResponsiveContainer>
           <PieChart>
-            <Pie data={data} innerRadius={58} outerRadius={88} paddingAngle={2} dataKey="value" stroke="transparent">
+            <Pie
+              data={data}
+              innerRadius={58}
+              outerRadius={88}
+              paddingAngle={2}
+              dataKey="value"
+              stroke="transparent"
+              animationDuration={400}
+            >
               {data.map((_, i) => (
-                <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
+                <Cell key={i} fill={palette[i % palette.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v) => formatCurrency(v)} />
+            <Tooltip
+              formatter={(v, name) => [formatCurrency(v), name]}
+              contentStyle={{
+                borderRadius: 10,
+                border: '1px solid rgba(15,23,42,0.08)',
+                fontSize: 13,
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </Box>
       {legend && (
-        <Stack spacing={0.75} sx={{ mt: 1 }}>
+        <Stack spacing={1} sx={{ mt: 1.5 }}>
           {data.map((d, i) => (
             <Stack key={d.name} direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
               <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: CHART_PALETTE[i % CHART_PALETTE.length], flexShrink: 0 }} />
+                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: palette[i % palette.length], flexShrink: 0 }} />
                 <Typography variant="body2" noWrap>{d.name}</Typography>
               </Stack>
               <Typography variant="body2" fontWeight={600} sx={{ flexShrink: 0 }}>{formatCurrency(d.value)}</Typography>
@@ -51,7 +149,13 @@ export function DonutAllocationChart({ tiers, legend = true }) {
   );
 }
 
-export function AreaCashFlowChart({ data, dataKey = 'balance', emptyAction }) {
+/**
+ * Balance outlook as grouped bar chart (easier to read than line/area).
+ * Downsamples long ranges so bars stay legible — same underlying series.
+ */
+export function AreaCashFlowChart({ data, emptyAction }) {
+  const colors = useChartColors();
+
   if (!data?.length) {
     return (
       <ChartEmptyState
@@ -62,7 +166,7 @@ export function AreaCashFlowChart({ data, dataKey = 'balance', emptyAction }) {
     );
   }
 
-  const maxBalance = Math.max(...data.map((d) => Number(d[dataKey]) || 0));
+  const maxBalance = Math.max(...data.map((d) => Number(d.balance) || 0));
   if (maxBalance <= 0) {
     return (
       <ChartEmptyState
@@ -73,70 +177,107 @@ export function AreaCashFlowChart({ data, dataKey = 'balance', emptyAction }) {
     );
   }
 
+  const chartData = downsampleBars(data, 28);
+  const series = [
+    { key: 'balance', label: 'Balance', color: colors.primary },
+    { key: 'income', label: 'Income', color: colors.isDark ? TEAL : colors.secondary },
+  ];
+
   return (
-    <Box sx={{ width: '100%', height: 280 }}>
+    <Box sx={{ width: '100%', height: 320 }}>
       <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#14B8A6" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="#14B8A6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-          <XAxis dataKey="date" tickFormatter={(d) => formatShortDate(d)} minTickGap={24} tick={{ fontSize: 11 }} />
+        <BarChart data={chartData} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap="18%">
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(d) => formatShortDate(d)}
+            minTickGap={28}
+            tick={{ fontSize: 11, fill: colors.tick }}
+            axisLine={false}
+            tickLine={false}
+          />
           <YAxis
-            tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)))}
-            tick={{ fontSize: 11 }}
+            tickFormatter={(v) => formatCompactCurrency(v).replace('NPR ', '')}
+            tick={{ fontSize: 11, fill: colors.tick }}
             width={48}
             domain={[0, (max) => Math.ceil(max * 1.08)]}
+            axisLine={false}
+            tickLine={false}
           />
-          <ReferenceLine y={0} stroke="rgba(148,163,184,0.35)" strokeDasharray="4 4" />
-          <Tooltip formatter={(v) => formatCurrency(v)} labelFormatter={(l) => formatShortDate(l)} />
-          <Area type="monotone" dataKey={dataKey} stroke="#14B8A6" fill="url(#cashGrad)" strokeWidth={2} />
-        </AreaChart>
+          <Tooltip
+            content={<ChartTooltip series={series} />}
+            cursor={{ fill: colors.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)' }}
+          />
+          <Bar
+            dataKey="balance"
+            name="Balance"
+            fill={colors.primary}
+            radius={[6, 6, 0, 0]}
+            maxBarSize={18}
+            animationDuration={550}
+          />
+          <Bar
+            dataKey="income"
+            name="Income"
+            fill={colors.isDark ? '#2DD4BF' : '#64748B'}
+            radius={[6, 6, 0, 0]}
+            maxBarSize={18}
+            animationDuration={550}
+          />
+        </BarChart>
       </ResponsiveContainer>
     </Box>
   );
 }
 
+function downsampleBars(rows, maxBars = 28) {
+  if (!rows?.length || rows.length <= maxBars) return rows;
+  const step = Math.ceil(rows.length / maxBars);
+  const out = [];
+  for (let i = 0; i < rows.length; i += step) out.push(rows[i]);
+  const last = rows[rows.length - 1];
+  if (out[out.length - 1] !== last) out.push(last);
+  return out;
+}
+
+/** Horizontal comparison bars via Recharts — income vs spending. */
 export function IncomeExpenseBarChart({ expenseTotal, incomeTotal }) {
-  const items = [
-    { name: 'Income', value: incomeTotal, fill: '#10B981' },
-    { name: 'Spending', value: expenseTotal, fill: '#EF4444' },
+  const colors = useChartColors();
+  const chartData = [
+    { name: 'Income', value: Number(incomeTotal) || 0, fill: colors.isDark ? '#E2E8F0' : '#1E3A5F' },
+    { name: 'Spending', value: Number(expenseTotal) || 0, fill: colors.isDark ? '#64748B' : '#94A3B8' },
   ];
-  const max = Math.max(incomeTotal, expenseTotal, 1);
 
   return (
-    <Box sx={{ py: 1 }}>
-      <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-end', justifyContent: 'center', minHeight: 180, px: 1 }}>
-        {items.map((d) => {
-          const ratio = d.value / max;
-          const barHeight = d.value === 0 ? 10 : Math.max(28, ratio * 120);
-          return (
-            <Box key={d.name} sx={{ textAlign: 'center', flex: 1, maxWidth: 120 }}>
-              <Box
-                sx={{
-                  width: '100%',
-                  maxWidth: 64,
-                  height: barHeight,
-                  mx: 'auto',
-                  mb: 1.25,
-                  borderRadius: 1.5,
-                  bgcolor: d.value === 0 ? 'transparent' : d.fill,
-                  border: d.value === 0 ? '2px dashed' : 'none',
-                  borderColor: d.value === 0 ? 'divider' : 'transparent',
-                  opacity: d.value === 0 ? 0.55 : 1,
-                  transition: 'height 0.4s ease',
-                }}
-              />
-              <Typography variant="caption" color="text.secondary" display="block">{d.name}</Typography>
-              <Typography variant="body2" fontWeight={700} sx={{ mt: 0.25 }}>
-                {formatCurrency(d.value)}
-              </Typography>
-            </Box>
-          );
-        })}
+    <Box sx={{ py: 0.5 }}>
+      <Box sx={{ width: '100%', height: 200 }}>
+        <ResponsiveContainer>
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 12, fill: colors.tick }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={(v) => formatCompactCurrency(v).replace('NPR ', '')}
+              tick={{ fontSize: 11, fill: colors.tick }}
+              width={44}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              cursor={{ fill: colors.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)' }}
+              content={<ChartTooltip series={[{ key: 'value', label: 'Amount' }]} />}
+            />
+            <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56} animationDuration={400}>
+              {chartData.map((entry) => (
+                <Cell key={entry.name} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </Box>
       {incomeTotal === 0 && (
         <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 1 }}>
@@ -149,27 +290,12 @@ export function IncomeExpenseBarChart({ expenseTotal, incomeTotal }) {
 
 function ChartEmptyState({ title, description, action }) {
   return (
-    <Box
-      sx={{
-        height: 280,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        px: 3,
-        borderRadius: 2,
-        border: '1px dashed',
-        borderColor: 'divider',
-        bgcolor: 'action.hover',
-      }}
-    >
-      <Typography variant="subtitle2" fontWeight={700} gutterBottom>{title}</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360, mb: action ? 2 : 0 }}>
-        {description}
-      </Typography>
-      {action}
-    </Box>
+    <EmptyState
+      title={title}
+      description={description}
+      action={action}
+      compact
+    />
   );
 }
 

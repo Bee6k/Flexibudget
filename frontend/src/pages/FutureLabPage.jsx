@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Stack, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, MenuItem, Typography, Fab, alpha,
+  DialogActions, TextField, Typography, Fab, alpha, Grid,
 } from '@mui/material';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -58,6 +58,10 @@ export default function FutureLabPage() {
   const [eventDialog, setEventDialog] = useState(null);
   const [freshDialog, setFreshDialog] = useState(false);
   const [freshBalance, setFreshBalance] = useState('');
+  const [activeCardId, setActiveCardId] = useState(null);
+  const [appliedCardIds, setAppliedCardIds] = useState([]);
+  const [storyPulse, setStoryPulse] = useState(0);
+  const [activeLabel, setActiveLabel] = useState('');
 
   const { scenarioView, baselineView } = useMemo(
     () => (inSandbox && sandbox ? projectViews(sandbox, live, playground) : { scenarioView: null, baselineView: null }),
@@ -89,6 +93,13 @@ export default function FutureLabPage() {
     } catch { /* ignore */ }
   }, [setSandbox]);
 
+  const markApplied = useCallback((card) => {
+    setActiveCardId(card.id);
+    setActiveLabel(card.label);
+    setAppliedCardIds((ids) => (ids.includes(card.id) ? ids : [...ids, card.id]));
+    setStoryPulse((n) => n + 1);
+  }, []);
+
   const handlePlayground = (key, value) => setPlayground((p) => ({ ...p, [key]: value }));
 
   const handleCard = (card) => {
@@ -97,12 +108,14 @@ export default function FutureLabPage() {
       return;
     }
     persist(applyScenarioCard(sandbox, card));
+    markApplied(card);
   };
 
   const confirmEvent = () => {
     if (!eventDialog) return;
     const { card, form } = eventDialog;
     persist(applyScenarioCard(sandbox, card, { name: form.name, amount: Number(form.amount) }));
+    markApplied(card);
     setEventDialog(null);
   };
 
@@ -114,10 +127,22 @@ export default function FutureLabPage() {
     }
     setSmartMsg(parsed.message);
     persist(applySmartActions(sandbox, parsed.actions));
+    setStoryPulse((n) => n + 1);
+    setActiveLabel(question);
   };
 
   const handleRecApply = (rec) => {
     if (rec.action) persist(applyRecommendationAction(sandbox, rec.action));
+  };
+
+  const handleReset = () => {
+    resetSandbox();
+    setPlayground(DEFAULT_PLAYGROUND);
+    setActiveCardId(null);
+    setAppliedCardIds([]);
+    setActiveLabel('');
+    setStoryPulse(0);
+    setSmartMsg('');
   };
 
   async function handleSave() {
@@ -128,7 +153,7 @@ export default function FutureLabPage() {
   if (!finance) return <FinanceUnavailable />;
 
   return (
-    <Box className="future-lab-page animate-page-enter" sx={{ pb: 10, maxWidth: 900, mx: 'auto', pt: 1 }}>
+    <Box className="future-lab-page animate-page-enter" sx={{ pb: 10, maxWidth: 1120, mx: 'auto', pt: 1 }}>
       {!inSandbox && (
         <FutureLabIntro
           balance={live.user?.current_balance}
@@ -152,7 +177,7 @@ export default function FutureLabPage() {
               </Typography>
             </Box>
             <Stack direction="row" spacing={1}>
-              <Button size="small" startIcon={<RestartAltIcon />} onClick={() => { resetSandbox(); setPlayground(DEFAULT_PLAYGROUND); }}>
+              <Button size="small" startIcon={<RestartAltIcon />} onClick={handleReset}>
                 Reset
               </Button>
               <Button size="small" startIcon={<CloseIcon />} onClick={() => { exitSandbox(); navigate('/dashboard'); }}>
@@ -161,32 +186,46 @@ export default function FutureLabPage() {
             </Stack>
           </Stack>
 
-          {/* 1. AI Summary — answers first, no charts */}
           <InsightHero insight={insight} showCompare={sandbox?.setupMode === 'current'} />
           <SurvivalMeter insight={insight} stressScore={stressScore} scenarioView={scenarioView} />
 
-          {/* Smart questions */}
           <SmartQuestions onAsk={handleSmartAsk} lastMessage={smartMsg} />
 
-          {/* 2. Scenario builder */}
-          <ScenarioBuilder onSelect={handleCard} />
+          <Grid container spacing={2.5} sx={{ mb: 3 }} alignItems="stretch">
+            <Grid item xs={12} md={5}>
+              <Box
+                sx={{
+                  p: { xs: 2, md: 2.5 },
+                  height: '100%',
+                  maxHeight: { md: 'min(640px, 78vh)' },
+                  overflow: 'auto',
+                  borderRadius: 3,
+                  border: (t) => `1px solid ${t.palette.divider}`,
+                  bgcolor: 'background.paper',
+                }}
+              >
+                <ScenarioBuilder
+                  onSelect={handleCard}
+                  activeId={activeCardId}
+                  appliedIds={appliedCardIds}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={7} sx={{ minWidth: 0, display: 'flex' }}>
+              <Box sx={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <ScenarioStory
+                  steps={story}
+                  pulseKey={storyPulse}
+                  activeLabel={activeLabel}
+                />
+              </Box>
+            </Grid>
+          </Grid>
 
-          {/* Scenario story */}
-          <ScenarioStory steps={story} />
-
-          {/* 5. Playground — live sliders */}
           <PlaygroundSliders values={playground} onChange={handlePlayground} />
-
-          {/* 4. Recommendations */}
           <RecommendationCards recommendations={recommendations} onApply={handleRecApply} />
-
-          {/* Financial doctor */}
           <FinancialDoctor issues={doctorIssues} />
-
-          {/* Money journey — replaces line chart */}
           <MoneyJourney nodes={journey} />
-
-          {/* 3. Interactive timeline */}
           <InteractiveTimeline milestones={timeline} />
 
           <Fab

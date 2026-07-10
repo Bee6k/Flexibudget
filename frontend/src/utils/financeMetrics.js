@@ -63,7 +63,7 @@ export function buildMonthlyOutlook(snapshots, months = 3) {
 
 export function buildIncomeExpenseComparison(expenses, incomes) {
   const expenseTotal = expenses.reduce((sum, e) => {
-    const mult = e.frequency === 'weekly' ? 4.33 : e.frequency === 'yearly' ? 1 / 12 : 1;
+    const mult = e.frequency === 'weekly' ? 52 / 12 : e.frequency === 'yearly' ? 1 / 12 : 1;
     return sum + Number(e.amount || 0) * mult;
   }, 0);
   const incomeTotal = incomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);

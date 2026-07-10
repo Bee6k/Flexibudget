@@ -1,57 +1,74 @@
 # FlexiBudget
 
-Adaptive financial planning for irregular income earners. Final year capstone project.
+**Plan your money when income isn’t steady.**
 
-Three algorithmic components: **Waterfall Allocation Engine**, **Risk Horizon Simulator**, and **Crisis State Evaluator**.
+FlexiBudget is a full-stack web app for people with irregular income — freelancers, students, gig workers, small business owners — who need to know what they can safely spend *today*, and what might happen *next month*.
 
-## Documentation
+It was built as a final-year capstone project.
 
-Full technical documentation lives in [`docs/`](./docs/README.md):
+---
 
-| Guide | Description |
-|-------|-------------|
-| [Developer Onboarding](./docs/DEVELOPER_ONBOARDING.md) | Day-one setup and learning path |
-| [Architecture](./docs/ARCHITECTURE.md) | System design and data flow |
-| [API Reference](./docs/API.md) | All REST endpoints |
-| [Database](./docs/DATABASE.md) | Models, relationships, migrations |
-| [Authentication](./docs/AUTHENTICATION.md) | Cookies, CSRF, session flow |
-| [Security](./docs/SECURITY.md) | Threat model and critical sections |
-| [Frontend](./docs/FRONTEND.md) | Pages, components, state |
-| [Maintainer Notes](./docs/MAINTAINER.md) | Safe vs risky change areas |
-| [Cleanup Report](./docs/CLEANUP_REPORT.md) | Dead code removal log |
+## What problem does it solve?
 
-Source files include file-level JSDoc headers on critical modules (server, auth, services, contexts).
+Most budgeting apps assume a fixed paycheck. Real life often doesn’t work that way.
 
-## Status
+FlexiBudget helps you:
 
-**Feature-complete for capstone demo.** Auth, CRUD, onboarding, dashboard algorithms, notifications, and server-backed goals/subscriptions/investments are implemented.
+1. **See what’s covered** — essentials first, then stability, then lifestyle  
+2. **Look ahead** — a simple forecast of your balance over the coming weeks  
+3. **Stay out of trouble** — clear signals when money is getting tight  
+4. **Try “what if?”** — Future Lab lets you experiment without changing real data  
 
-## Stack
+---
 
-- **Frontend:** React 18, Vite 5, MUI v5, React Router v6, Axios, Recharts
-- **Backend:** Node 18+, Express 4, Sequelize 6, MySQL 8
-- **Auth:** HttpOnly JWT cookies + CSRF protection (Bearer still supported for tests)
-- **Tests:** Jest, Supertest
+## Main features
 
-## Prerequisites
+| Feature | What it does |
+|--------|----------------|
+| **Dashboard** | Balance, burn rate, coverage by priority, and outlook charts |
+| **Income & expenses** | Track sources and bills; one-time items update your balance |
+| **Onboarding** | Quick setup with role-based expense presets |
+| **Future Lab** | Sandbox scenarios, money journey, and clickable future dates |
+| **Goals, subscriptions, investments** | Extra planning tools stored on the server |
+| **Dark & light mode** | Theme that works on desktop and mobile |
 
-- Node.js 18+ LTS (tested on 20.18)
-- MySQL 8.0+ running locally (e.g. XAMPP)
-- npm 10+
+---
 
-**Important (Windows / zip downloads):** If you opened `Downloads\bishal_ug`, the app lives in the **nested** folder `bishal_ug\bishal_ug\`. Run all commands from there:
+## How the “brain” works (simple version)
 
-```powershell
-cd C:\Users\acer\Downloads\bishal_ug\bishal_ug
-```
+Three ideas power the live numbers:
 
-Then `cd backend` or `cd frontend` as below.
+1. **Waterfall allocation** — Money fills Survival → Stability → Strategic → Lifestyle, in that order  
+2. **Risk horizon** — Day-by-day projection of balance, income, and bills  
+3. **Crisis state** — Labels your situation as normal, caution, or crisis based on coverage and runway  
 
-**PowerShell on Windows:** If `npm` fails with *"running scripts is disabled"*, use **`npm.cmd`** instead of `npm` (same commands, e.g. `npm.cmd install`, `npm.cmd run dev`). This avoids changing execution policy.
+The backend is the source of truth. Future Lab can simulate changes on the client before you apply them.
 
-## Setup
+---
 
-### 1. Database
+## Tech stack
+
+| Layer | Tools |
+|-------|--------|
+| Frontend | React 18, Vite, MUI, Recharts |
+| Backend | Node.js, Express, Sequelize |
+| Database | MySQL 8 |
+| Auth | HttpOnly JWT cookies + CSRF |
+| Tests | Jest + Supertest (backend) |
+
+---
+
+## Quick start (local)
+
+### What you need
+
+- Node.js 18+ (20 LTS recommended)  
+- MySQL 8  
+- npm  
+
+> **Windows tip:** If PowerShell blocks scripts, use `npm.cmd` instead of `npm`.
+
+### 1. Create the database
 
 ```sql
 CREATE DATABASE flexibudget;
@@ -60,89 +77,77 @@ GRANT ALL PRIVILEGES ON flexibudget.* TO 'flexiuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-### 2. Backend
+### 2. Start the API
 
-```powershell
+```bash
 cd backend
-copy .env.example .env
+cp .env.example .env          # Windows: copy .env.example .env
 ```
 
 Edit `.env`:
 
-- Set MySQL credentials
-- Set `JWT_SECRET` to a random string of **at least 32 characters**
-  ```powershell
-  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-  ```
+- MySQL host, user, password, database name  
+- `JWT_SECRET` — at least 32 random characters  
+- `CLIENT_ORIGIN=http://localhost:5173`
 
-```powershell
-npm.cmd install
-npm.cmd run dev        # http://localhost:5000 (nodemon)
-# or: npm.cmd start    # production mode without reload
+Generate a secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Health check: `GET http://localhost:5000/api/health` → `{ "status": "ok" }`
+Then:
 
-Migrations run automatically on startup. To run them manually:
-
-```powershell
-npm.cmd run migrate
+```bash
+npm install
+npm run dev
 ```
 
-### 3. Frontend
+API: [http://localhost:5000](http://localhost:5000)  
+Health: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
-```powershell
+### 3. Start the app
+
+```bash
 cd frontend
-npm.cmd install
-npm.cmd run dev       # http://localhost:5173
-# or: npm.cmd start
+cp .env.example .env          # optional; defaults work for local API
+npm install
+npm run dev
 ```
 
-The frontend sends cookies with every API request (`withCredentials: true`). Keep `CLIENT_ORIGIN=http://localhost:5173` in the backend `.env`.
+App: [http://localhost:5173](http://localhost:5173)
+
+---
+
+## Docker (optional)
+
+From the project root (with a strong `JWT_SECRET` set):
+
+```bash
+export JWT_SECRET="$(node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")"
+docker compose up --build
+```
+
+- App: [http://localhost:8080](http://localhost:8080)  
+- API (direct): [http://localhost:5000](http://localhost:5000)  
+
+The web container proxies `/api` to the API so login cookies work on the same origin.
+
+---
 
 ## Project layout
 
 ```
-flexibudget/
-├── backend/
-│   ├── config/         # database, JWT
-│   ├── controllers/    # request handlers
-│   ├── middleware/     # auth, CSRF, validation, rate limits
-│   ├── migrations/     # schema migrations (ENUM fix, user data tables)
-│   ├── models/         # User, Expense, Income, Goal, Subscription, Investment
-│   ├── routes/         # API route definitions
-│   ├── services/       # allocation, horizon, crisis, recommendations
-│   ├── tests/          # Jest + Supertest
-│   └── server.js
-└── frontend/
-    └── src/
-        ├── config/     # navigation, storage keys, lazy pages
-        ├── hooks/      # shared React hooks
-        ├── components/ # AppShell, onboarding, charts, Future Lab
-        ├── context/    # Auth, Finance, Notifications, Theme
-        ├── pages/      # Dashboard, expenses, goals, Future Lab, etc.
-        └── services/   # Axios API client (cookie + CSRF)
+bishal_ug/
+├── backend/          # Express API, models, migrations, tests
+├── frontend/         # React app (Vite)
+├── docs/             # Deeper technical guides
+├── scripts/          # e.g. MySQL backup helper
+├── docker-compose.yml
+└── README.md         # You are here
 ```
 
-## API overview
-
-| Area | Endpoints |
-|------|-----------|
-| Auth | `GET /auth/csrf`, `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/verify` |
-| Expenses | CRUD + bulk create |
-| Incomes | CRUD |
-| Goals | CRUD (server-backed) |
-| Subscriptions | CRUD (server-backed, powers billing reminders) |
-| Investments | CRUD (server-backed) |
-| Dashboard | Allocation, horizon, crisis, recommendations |
-
-## Security notes
-
-- JWT stored in **HttpOnly** cookie (not accessible to JavaScript)
-- CSRF token required on POST/PUT/DELETE requests
-- Rate limiting on auth and API routes
-- Helmet security headers
-- Set a strong `JWT_SECRET` before running in any shared environment
+---
 
 ## Tests
 
@@ -151,8 +156,41 @@ cd backend
 npm test
 ```
 
-## Notes on tech-stack choices
+---
 
-- **Vite over create-react-app.** CRA is deprecated; Vite 5 is used (Vite 8 requires Node 20.19+, while this machine runs Node 20.18).
-- **React 18, not 19.** Pinned to match the spec and MUI v5's supported range.
-- **Cookie auth over localStorage JWT.** Reduces XSS session theft risk for a finance app.
+## Security (short version)
+
+- Passwords are hashed (bcrypt)  
+- Session JWT lives in an **HttpOnly** cookie (not readable by page scripts)  
+- Mutating requests need a CSRF token  
+- Rate limits on login/register and the API  
+- Logout invalidates outstanding tokens via `token_version`  
+
+Never commit real `.env` files or weak secrets.
+
+---
+
+## More documentation
+
+| Doc | For |
+|-----|-----|
+| [Developer onboarding](./docs/DEVELOPER_ONBOARDING.md) | First-day setup |
+| [Architecture](./docs/ARCHITECTURE.md) | How pieces connect |
+| [API reference](./docs/API.md) | Endpoints |
+| [Database](./docs/DATABASE.md) | Schema |
+| [Authentication](./docs/AUTHENTICATION.md) | Cookies & CSRF |
+| [Security](./docs/SECURITY.md) | Threat notes |
+| [Frontend](./docs/FRONTEND.md) | UI structure |
+| [Maintainer notes](./docs/MAINTAINER.md) | What is safe to change |
+
+---
+
+## Status
+
+Ready for **demo and local use**. Production deploys should use HTTPS, a strong `JWT_SECRET`, same-origin (or carefully configured) cookies, and regular database backups (`scripts/backup-mysql.sh`).
+
+---
+
+## License / academic use
+
+Capstone / educational project. Use and adapt with attribution as required by your course or institution.

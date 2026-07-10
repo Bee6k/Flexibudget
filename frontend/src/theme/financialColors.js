@@ -45,4 +45,12 @@ export function crisisToColor(state) {
   }
 }
 
+/** Light-mode chart hues (navy/teal family). */
 export const CHART_PALETTE = ['#0D9488', '#1E3A5F', '#2E5077', '#D97706', '#DC2626', '#0284C7', '#059669'];
+
+/** Dark-mode chart hues — brighter so they read on navy-slate surfaces. */
+export const CHART_PALETTE_DARK = ['#2DD4BF', '#94A3B8', '#7DD3FC', '#FBBF24', '#F87171', '#A5B4FC', '#34D399'];
+
+export function chartPalette(isDark) {
+  return isDark ? CHART_PALETTE_DARK : CHART_PALETTE;
+}

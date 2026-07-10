@@ -48,7 +48,7 @@ export default function AIInsightsPage() {
   const finance = useFinanceView();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hi — I\'m here to advise on your spending, savings, and what to adjust next. Ask me anything.' },
+    { role: 'assistant', text: 'Hi — these are rules-based tips from your budget data. Ask a question or pick a suggestion below.' },
   ]);
 
   function ask(text) {
@@ -70,7 +70,10 @@ export default function AIInsightsPage() {
 
   return (
     <Box>
-      <PageHeader title="Advise" subtitle="Personal guidance based on your spending — ask anything or review suggestions." />
+      <PageHeader
+        title="Budget tips"
+        subtitle="Rules-based guidance from your spending data — not AI. Ask a question or review suggestions."
+      />
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
         <Paper sx={{ flex: 1, p: 2.5, minHeight: 480, display: 'flex', flexDirection: 'column' }}>
           <Stack spacing={2} sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
@@ -81,7 +84,14 @@ export default function AIInsightsPage() {
                     <AutoAwesomeIcon sx={{ fontSize: 18 }} />
                   </Avatar>
                 )}
-                <Paper sx={{ p: 1.5, maxWidth: '80%', bgcolor: m.role === 'user' ? 'primary.main' : 'action.hover', color: m.role === 'user' ? '#0F172A' : 'text.primary' }}>
+                <Paper
+                  sx={{
+                    p: 1.5,
+                    maxWidth: '80%',
+                    bgcolor: m.role === 'user' ? 'primary.main' : 'action.hover',
+                    color: m.role === 'user' ? 'primary.contrastText' : 'text.primary',
+                  }}
+                >
                   <Typography variant="body2">{m.text}</Typography>
                 </Paper>
               </Stack>
@@ -93,13 +103,19 @@ export default function AIInsightsPage() {
             ))}
           </Stack>
           <Stack direction="row" spacing={1}>
-            <TextField fullWidth placeholder="Ask about your finances…" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
-            <Button variant="contained" onClick={() => ask()}><SendIcon /></Button>
+            <TextField
+              fullWidth
+              placeholder="Ask about your finances…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && ask()}
+            />
+            <Button variant="contained" onClick={() => ask()} aria-label="Send"><SendIcon /></Button>
           </Stack>
         </Paper>
         <Box sx={{ width: { lg: 360 } }}>
           <Paper sx={{ p: 2.5, mb: 2 }}>
-            <Typography variant="subtitle2" fontWeight={700} gutterBottom>Quick insight</Typography>
+            <Typography variant="subtitle2" fontWeight={700} gutterBottom>Quick tip</Typography>
             {topExpense ? (
               <Typography variant="body2">Largest expense: <strong>{topExpense.name}</strong> ({formatCurrency(topExpense.amount)})</Typography>
             ) : (

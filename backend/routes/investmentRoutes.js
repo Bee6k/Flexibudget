@@ -1,5 +1,5 @@
 const express = require('express');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const {
   listInvestments,
   createInvestment,
@@ -14,28 +14,35 @@ const INVESTMENT_TYPES = [
 ];
 
 const router = express.Router();
+const moneyMax = 1_000_000_000;
 
 router.use(requireAuth);
 
 router.get('/', listInvestments);
 router.post(
   '/',
-  body('name').trim().notEmpty().withMessage('Name is required.'),
+  body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required.'),
   body('type').isIn(INVESTMENT_TYPES).withMessage('Invalid investment type.'),
-  body('value').isFloat({ min: 0.01 }).withMessage('Value must be greater than zero.'),
-  body('change').optional().isFloat().withMessage('Change must be a number.'),
+  body('value').isFloat({ min: 0.01, max: moneyMax }).withMessage('Value must be greater than zero.'),
+  body('change').optional().isFloat({ min: -1000, max: 1000 }).withMessage('Change must be a number.'),
   validate,
   createInvestment
 );
 router.put(
   '/:investmentId',
-  body('name').trim().notEmpty().withMessage('Name is required.'),
+  param('investmentId').isInt({ min: 1 }).withMessage('Invalid investment id.'),
+  body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required.'),
   body('type').isIn(INVESTMENT_TYPES).withMessage('Invalid investment type.'),
-  body('value').isFloat({ min: 0.01 }).withMessage('Value must be greater than zero.'),
-  body('change').optional().isFloat().withMessage('Change must be a number.'),
+  body('value').isFloat({ min: 0.01, max: moneyMax }).withMessage('Value must be greater than zero.'),
+  body('change').optional().isFloat({ min: -1000, max: 1000 }).withMessage('Change must be a number.'),
   validate,
   updateInvestment
 );
-router.delete('/:investmentId', deleteInvestment);
+router.delete(
+  '/:investmentId',
+  param('investmentId').isInt({ min: 1 }).withMessage('Invalid investment id.'),
+  validate,
+  deleteInvestment
+);
 
 module.exports = router;

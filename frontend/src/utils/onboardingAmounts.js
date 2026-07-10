@@ -1,7 +1,7 @@
 /** Convert preset amounts to a monthly figure for onboarding (everything saves as monthly). */
 export function normalizeToMonthly(amount, frequency = 'monthly') {
   const n = Number(amount) || 0;
-  if (frequency === 'weekly') return Math.round(n * 4);
+  if (frequency === 'weekly') return Math.round((n * 52) / 12);
   if (frequency === 'yearly') return Math.round(n / 12);
   return Math.round(n);
 }

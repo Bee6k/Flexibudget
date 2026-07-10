@@ -1,29 +1,6 @@
 /**
  * FILE: server.js
- *
- * PURPOSE:
- * Express application entry point — wires middleware, routes, and database bootstrap.
- *
- * RESPONSIBILITIES:
- * - Security middleware (helmet, CORS, cookies, CSRF, rate limits)
- * - Mount all /api route modules
- * - Global error handler (safe 5xx messages)
- * - Startup: validateEnv → sync → migrations → seed presets → listen
- *
- * USED BY:
- * - npm start / npm run server
- * - Jest/Supertest (exports `app` without calling listen when imported)
- *
- * DEPENDENCIES:
- * models, validateEnv, migrate, rateLimit, csrf, route modules
- *
- * SECURITY NOTES:
- * - CSRF enforced on mutating /api requests (skipped when NODE_ENV=test)
- * - CORS requires credentials + CLIENT_ORIGIN whitelist
- *
- * MAINTAINER NOTES:
- * - Middleware order matters; do not mount routes before cookieParser/CSRF without review
- * - See docs/ARCHITECTURE.md for request lifecycle
+ * Express entry — middleware, routes, DB bootstrap.
  */
 require('dotenv').config();
 
@@ -39,12 +16,28 @@ const { csrfProtection } = require('./middleware/csrf');
 
 const app = express();
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-}));
+if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
+
+app.use(helmet());
+
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+if (process.env.NODE_ENV === 'production' && allowedOrigins.some((o) => o === '*')) {
+  throw new Error('CLIENT_ORIGIN must not be * when credentials are enabled.');
+}
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true,
@@ -53,8 +46,13 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+app.get('/api/health', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ status: 'ok', database: 'up' });
+  } catch {
+    res.status(503).json({ status: 'degraded', database: 'down' });
+  }
 });
 
 app.use('/api/auth/login', authLimiter);
@@ -101,7 +99,21 @@ async function start() {
     await runMigrations(sequelize);
     await seedPresetCategories();
     console.log('Database models synchronized.');
-    app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+
+    const server = app.listen(PORT, () => console.log(`API listening on http://localhost:${PORT}`));
+
+    const shutdown = async (signal) => {
+      console.log(`${signal} received, shutting down…`);
+      server.close(async () => {
+        try {
+          await sequelize.close();
+        } finally {
+          process.exit(0);
+        }
+      });
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   } catch (err) {
     console.error('Failed to start server:', err.message);
     process.exit(1);

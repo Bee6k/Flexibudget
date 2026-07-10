@@ -34,8 +34,8 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Intelligence',
-    items: [{ path: '/advise', label: 'Advise', icon: 'ai' }],
+    title: 'Tips',
+    items: [{ path: '/advise', label: 'Budget tips', icon: 'ai' }],
   },
   {
     title: 'Account',
@@ -49,3 +49,13 @@ export const NAV_SECTIONS = [
 export const PAGE_TITLES = Object.fromEntries(
   NAV_SECTIONS.flatMap((s) => s.items.map((i) => [i.path, i.label]))
 );
+
+/** Breadcrumb trail: Home → current page */
+export function getBreadcrumbs(pathname) {
+  const crumbs = [{ path: '/dashboard', label: 'Home' }];
+  const pageLabel = PAGE_TITLES[pathname];
+  if (pathname !== '/dashboard' && pageLabel) {
+    crumbs.push({ path: pathname, label: pageLabel });
+  }
+  return crumbs;
+}

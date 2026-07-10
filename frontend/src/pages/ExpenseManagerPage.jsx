@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, Grid, Paper, Typography, Stack } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/ui/PageHeader';
 import ExpenseList from '../components/ExpenseList';
 import ExpenseForm from '../components/ExpenseForm';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { DonutAllocationChart } from '../components/charts/FinanceCharts';
 import { FinanceUnavailable } from '../components/FinanceViewGate';
 import { useFinanceView } from '../hooks/useFinanceReady';
+import { useToast } from '../context/ToastContext';
 import { createExpense, updateExpense, deleteExpense } from '../services/expenses';
 import { formatCurrency } from '../utils/currency';
 import { CHART_PALETTE } from '../theme/financialColors';
@@ -15,7 +16,10 @@ import { priorityLabel } from '../utils/copy';
 
 export default function ExpenseManagerPage() {
   const finance = useFinanceView();
+  const { showToast } = useToast();
   const [dialog, setDialog] = useState({ open: false, initial: null });
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const topCategories = useMemo(() => {
     const map = new Map();
@@ -29,19 +33,33 @@ export default function ExpenseManagerPage() {
   if (!finance) return <FinanceUnavailable />;
 
   const { view, refresh } = finance;
-
   const monthlyBurn = (view.horizon?.daily_burn_rate || 0) * 30;
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await deleteExpense(pendingDelete.expense_id);
+      await refresh();
+      showToast(`Removed “${pendingDelete.name}”.`);
+      setPendingDelete(null);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Could not remove expense.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <Box>
       <PageHeader
         title="Expense Manager"
-        subtitle="Review and manage what you spend, grouped by priority."
-        action={
+        subtitle="Review and manage what you spend, grouped by priority. Use Remove on any row to delete."
+        action={(
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ open: true, initial: null })}>
             Add expense
           </Button>
-        }
+        )}
       />
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         <Grid item xs={12} md={3}>
@@ -75,12 +93,8 @@ export default function ExpenseManagerPage() {
           <ExpenseList
             expenses={view.expenses}
             onEdit={(e) => setDialog({ open: true, initial: e })}
-            onDelete={async (e) => {
-              if (window.confirm(`Delete ${e.name}?`)) {
-                await deleteExpense(e.expense_id);
-                await refresh();
-              }
-            }}
+            onAdd={() => setDialog({ open: true, initial: null })}
+            onDelete={(e) => setPendingDelete(e)}
           />
         </Grid>
         <Grid item xs={12} lg={4}>
@@ -98,7 +112,17 @@ export default function ExpenseManagerPage() {
           if (dialog.initial) await updateExpense(dialog.initial.expense_id, payload);
           else await createExpense(payload);
           await refresh();
+          showToast(dialog.initial ? 'Expense updated.' : 'Expense added.');
         }}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Remove expense?"
+        message={`“${pendingDelete?.name}” will be removed from your budget. Runway and allocation will update.`}
+        confirmLabel="Remove"
+        loading={deleting}
+        onClose={() => !deleting && setPendingDelete(null)}
+        onConfirm={confirmDelete}
       />
     </Box>
   );
