@@ -12,7 +12,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 
 module.exports = async () => {
   const dbName = process.env.DB_NAME || '';
-  const { sequelize } = require('../models');
+  const { sequelize, seedPresetCategories } = require('../models');
 
   console.log('[jest globalSetup]', {
     host: process.env.DB_HOST,
@@ -31,4 +31,7 @@ module.exports = async () => {
     await sequelize.sync();
     console.log('[jest globalSetup] sync() ok');
   }
+
+  await seedPresetCategories();
+  console.log('[jest globalSetup] preset categories seeded');
 };
